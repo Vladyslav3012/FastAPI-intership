@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.params import Depends
 
-from users.utils import auth_utils, users_utils
+from app.users.utils import auth_utils, users_utils
 from app.config import engine, Base, setup_logging
 from app.users.schemas import UserOutputSchema
 from app.users.view import router as users_router

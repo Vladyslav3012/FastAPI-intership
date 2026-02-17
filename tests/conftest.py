@@ -7,6 +7,7 @@ from typing import AsyncGenerator
 from app.main import app
 from app.config import settings
 from app.config import Base, get_session
+from app.redis_config import token_blacklist
 
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
@@ -48,3 +49,9 @@ async def client(db_session):
         yield ac
 
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def clear_redis():
+    yield
+    await token_blacklist.aclose()
