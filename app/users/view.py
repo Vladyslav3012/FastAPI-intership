@@ -1,9 +1,10 @@
 import logging
 from fastapi import APIRouter, HTTPException, Depends
 from app.config import SessionDep
+from app.redis_config import add_jti_to_blocklist
 from app.users.models import UsersModel, RefreshTokenModel
 from app.users.schemas import UserInputSchema, UserOutputSchema
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
 from app.users.utils import auth_utils, users_utils
 
@@ -39,14 +40,38 @@ async def signup_user(user: UserInputSchema, session: SessionDep):
 
 
 @router.post('/login')
-async def login_user(session: SessionDep, user: UserOutputSchema = Depends(users_utils.check_auth_user_in_db)):
-    access_token = auth_utils.create_access_token(user)
-    _, refresh_token = await auth_utils.create_refresh_token(session, user)
+async def login_user(session: SessionDep,
+                     user: UserOutputSchema = Depends(users_utils.check_auth_user_in_db)
+) -> auth_utils.TokenInfo:
+    tokens = await auth_utils.create_token_pair(session, user)
+    access_token = tokens.get('access_token')
+    refresh_token = tokens.get('refresh_token')
 
     return auth_utils.TokenInfo(
         access_token=access_token,
         refresh_token=refresh_token,
     )
+
+
+@router.post('/logout')
+async def logout_user(
+        session: SessionDep,
+        payload: dict = Depends(auth_utils.get_payload_from_token)
+):
+    jti = payload.get('jti')
+    exp = payload.get('exp')
+    refresh_jti = payload.get('refresh_jti')
+
+    await add_jti_to_blocklist(jti=jti, exp=exp)
+
+    if refresh_jti:
+        query = delete(RefreshTokenModel).where(RefreshTokenModel.jti == refresh_jti)
+        await session.execute(query)
+        await session.commit()
+        return {"msg": "Success logout from this device only"}
+
+    logger.error("Token has not refresh_jti")
+    return {"msg": "Invalid token"}
 
 
 @router.get('/me')
@@ -83,8 +108,9 @@ async def refresh_jwt(
 
     await session.delete(token_db)
 
-    access_token = auth_utils.create_access_token(user)
-    _, refresh_token = await auth_utils.create_refresh_token(session, user)
+    tokens = await auth_utils.create_token_pair(session, user)
+    access_token = tokens.get('access_token')
+    refresh_token = tokens.get('refresh_token')
 
     return auth_utils.TokenInfo(
         access_token=access_token,

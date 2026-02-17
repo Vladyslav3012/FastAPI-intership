@@ -37,21 +37,21 @@ async def check_auth_user_in_db(
 
 
 async def get_current_user_from_payload(payload: dict, session: SessionDep):
-    email = payload.get('email')
-    if email is None:
-        email = payload.get('sub')
+    user_id = payload.get('id')
+    if user_id is None:
+        user_id = int(payload.get('sub'))
 
     unauth_exception = HTTPException(status_code=401, detail="Invalid email or password")
 
-    query = select(UsersModel).where(UsersModel.email == email)
+    query = select(UsersModel).where(UsersModel.id == user_id)
     res = await session.execute(query)
     user_db = res.scalars().one_or_none()
 
     if user_db is None:
-        logger.error(f"User with {email=} not found")
+        logger.error(f"User with {user_id=} not found")
         raise unauth_exception
     if not user_db.active:
-        logger.error(f"{email=} inactive")
+        logger.error(f"{user_id=} inactive")
         raise HTTPException(status_code=403, detail="User inactive")
     return user_db
 
@@ -62,5 +62,5 @@ class UserGetterFromTokenType:
 
     async def __call__(self, session: SessionDep,
                        payload: dict = Depends(auth_utils.get_payload_from_token)):
-        auth_utils.validate_token_by_type(payload, self.token_type)
+        await auth_utils.validate_token_by_type(payload, self.token_type)
         return await get_current_user_from_payload(payload, session)

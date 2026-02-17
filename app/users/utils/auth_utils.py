@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import (HTTPAuthorizationCredentials, HTTPBearer)
 from pydantic import BaseModel
 from app.config import settings, SessionDep
+from app.redis_config import check_token_in_blacklist
 from app.users.models import RefreshTokenModel
 from app.users.schemas import UserOutputSchema
 
@@ -33,12 +34,12 @@ class TokenInfo(BaseModel):
 CREATE TOKEN AND DECODE
 """
 def encode_jwt(payload: dict,
-               expire_at: int,
+               expire_minutes: int,
                private_key: str = settings.auth_jwt.private_key_path.read_text(),
                algorithm: str = settings.auth_jwt.algorithm):
 
     now = datetime.datetime.now(datetime.UTC)
-    expire = now + datetime.timedelta(minutes=expire_at)
+    expire = now + datetime.timedelta(minutes=expire_minutes)
 
     to_encode = payload.copy()
     to_encode.update(iat=now ,exp=expire)
@@ -59,50 +60,62 @@ def decode_jwt(token: str | bytes,
     return decode_token
 
 
-def create_jwt(token_type: str, token_data: dict, expired_at: int) -> str:
+def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
     jwt_payload = {TOKEN_TYPE_FIELD: token_type}
     jwt_payload.update(token_data)
-    return encode_jwt(payload=jwt_payload, expire_at=expired_at)
+    return encode_jwt(payload=jwt_payload, expire_minutes=expire_minutes)
 
 
-def create_access_token(user: UserOutputSchema) -> str:
-    jwt_payload = {
-        "sub": user.email,
-        "id": user.id,
-        "username": user.username,
-        "email": user.email
-    }
-    return create_jwt(ACCESS_TOKEN_FIELD, jwt_payload,
-                      settings.auth_jwt.access_token_expire_minutes)
+async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict:
 
+    #create refresh token
+    jti_refresh = str(uuid.uuid4())
 
-async def create_refresh_token(session: SessionDep, user: UserOutputSchema):
-    jti = str(uuid.uuid4())
-    jwt_payload = {
-        "sub": user.email,
-        'jti': jti
-
-    }
     now = datetime.datetime.now(datetime.UTC)
     expire = now + datetime.timedelta(minutes=settings.auth_jwt.refresh_token_expire_minutes)
 
     db_token = RefreshTokenModel(
-        jti=jti,
+        jti=jti_refresh,
         expire_at=expire,
         user_id=user.id
     )
     session.add(db_token)
+
+    jwt_refresh_payload = {
+        "sub": str(user.id),
+        'jti': jti_refresh
+
+    }
+    refresh_token = create_jwt(REFRESH_TOKEN_FIELD, jwt_refresh_payload,
+                           settings.auth_jwt.refresh_token_expire_minutes)
+
+    #access token
+    jti_access = str(uuid.uuid4())
+
+    jwt_access_payload = {
+        "sub": str(user.id),
+        "username": user.username,
+        "email": user.email,
+        "jti": jti_access,
+        "refresh_jti": jti_refresh
+    }
+    access_token = create_jwt(ACCESS_TOKEN_FIELD, jwt_access_payload,
+                      settings.auth_jwt.access_token_expire_minutes)
+
     await session.commit()
 
-    return jti, create_jwt(REFRESH_TOKEN_FIELD, jwt_payload,
-                      settings.auth_jwt.refresh_token_expire_minutes)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }
+
 
 
 """
 HELPERS FUNC
 """
 
-def get_payload_from_token(
+async def get_payload_from_token(
         credentials: HTTPAuthorizationCredentials = Depends(http_bearer)
 ):
     token = credentials.credentials
@@ -110,13 +123,25 @@ def get_payload_from_token(
         payload = decode_jwt(token=token, )
     except InvalidTokenError as e:
         logger.error(f"Token error: {e}")
-        raise HTTPException(401, 'Invalid token ')
+        raise HTTPException(401, 'Invalid token')
+
+    jti = payload.get("jti")
+    if not jti:
+        logger.error("Token has not jti")
+        raise HTTPException(401, "Invalid token")
+
     return payload
 
 
 #check type token if need to refresh token allow only refresh
-def validate_token_by_type(payload: dict, token_type_to_check: str):
+async def validate_token_by_type(payload: dict, token_type_to_check: str):
     current_token_type = payload.get('type')
     if current_token_type != token_type_to_check:
         logger.error(f"Token {current_token_type=} error, expected {token_type_to_check}")
+        raise HTTPException(401, "Invalid token")
+
+    jti = payload.get('jti')
+    check = await check_token_in_blacklist(jti)
+    if check:
+        logger.error("Token in blacklist")
         raise HTTPException(401, "Invalid token")
