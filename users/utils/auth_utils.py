@@ -7,7 +7,7 @@ from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException
 from fastapi.security import (HTTPAuthorizationCredentials, HTTPBearer)
 from pydantic import BaseModel
-from settings import settings, SessionDep
+from conf import settings, SessionDep
 from users.models import RefreshTokenModel
 from users.schemas import UserOutputSchema
 

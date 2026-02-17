@@ -4,7 +4,7 @@ import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from watchfiles import awatch
 
-from settings import SessionDep, settings
+from conf import SessionDep, settings
 from users.models import UsersModel, RefreshTokenModel
 from users.schemas import UserInputSchema, UserOutputSchema
 from sqlalchemy import select

@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from typing import AsyncGenerator
 
 from main import app
-from settings import settings
-from settings import Base, get_session
+from conf import settings
+from conf import Base, get_session
 
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)

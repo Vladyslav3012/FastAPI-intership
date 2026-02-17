@@ -8,7 +8,7 @@ from alembic import context
 
 sys.path.append(os.path.join(sys.path[0], '..'))
 from users.models import UsersModel
-from settings import settings, Base
+from conf import settings, Base
 
 
 

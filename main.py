@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
-from settings import engine, Base, setup_logging
+from conf import engine, Base, setup_logging
 from users.view import router as users_router
 from users.models import UsersModel
 

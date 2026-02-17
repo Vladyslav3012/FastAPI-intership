@@ -1,7 +1,7 @@
 import logging
 from fastapi import Form, HTTPException, Depends
 from pydantic import EmailStr
-from settings import SessionDep
+from conf import SessionDep
 from sqlalchemy import select
 
 from users.utils import auth_utils
