@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
-from users.models import UsersModel
+from users.models import UsersModel, UserRoleEnum
 
 
 @pytest.mark.asyncio
@@ -29,6 +29,8 @@ async def test_register_user(client: AsyncClient, db_session):
     assert user_in_db is not None
     assert user_in_db.id == 1
     assert user_in_db._hashed_password_ != user_data.get('password')
+    assert user_in_db.active == True
+    assert user_in_db.role == UserRoleEnum.regular
 
 
 @pytest.mark.asyncio
