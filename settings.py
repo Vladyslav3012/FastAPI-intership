@@ -1,18 +1,32 @@
 import datetime
+from logging.config import dictConfig
+from pathlib import Path
 from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import (create_async_engine, async_sessionmaker,
                                     AsyncSession)
 from sqlalchemy.orm import DeclarativeBase, mapped_column
-from pydantic import computed_field, PostgresDsn
+from pydantic import computed_field, PostgresDsn, BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-"""
-DATABASE SETTINGS
-"""
 
-#for database connections with, and for pull out keys of .env
+BASE_DIR = Path(__file__).parent
+
+#shortcut for database tables
+class DatabaseShortcut:
+    intpk = Annotated[int, mapped_column(primary_key=True)]
+    created_at = Annotated[datetime.datetime, mapped_column(server_default=func.now())]
+
+#jwt settings
+class AuthJWT(BaseModel):
+    private_key_path: Path = BASE_DIR / "certs" / "jwt-private.pem"
+    public_key_path: Path = BASE_DIR / "certs" / "jwt-public.pem"
+    algorithm: str = "RS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_minutes: int = 60 * 24 * 30
+
+
 class Settings(BaseSettings):
     DB_HOST: str
     DB_PORT: int
@@ -20,8 +34,16 @@ class Settings(BaseSettings):
     DB_PASS: str
     DB_NAME: str
 
+    TEST_DB_HOST: str
+    TEST_DB_PORT: int
+    TEST_DB_USER: str
+    TEST_DB_PASS: str
+    TEST_DB_NAME: str
+
+
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
+    # for database connections with, and for pull out keys of .env
     @computed_field
     @property
     def database_url(self) -> str:
@@ -34,8 +56,28 @@ class Settings(BaseSettings):
             path=self.DB_NAME,
         ))
 
+    @computed_field
+    @property
+    def test_database_url(self) -> str:
+        return str(PostgresDsn.build(
+            scheme="postgresql+asyncpg",
+            username=self.TEST_DB_USER,
+            password=self.TEST_DB_PASS,
+            host=self.TEST_DB_HOST,
+            port=self.TEST_DB_PORT,
+            path=self.TEST_DB_NAME,
+        ))
+
+    auth_jwt: AuthJWT = AuthJWT()
+
+    database_shortcut: DatabaseShortcut = DatabaseShortcut()
+
 
 settings = Settings()
+
+"""
+DATABASE SETTINGS SESSION
+"""
 
 engine = create_async_engine(settings.database_url, echo=True)
 
@@ -53,6 +95,62 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 class Base(DeclarativeBase):
     pass
 
-#shortcut for database tables
-intpk = Annotated[int, mapped_column(primary_key=True)]
-created_at = Annotated[datetime.datetime, mapped_column(server_default=func.now())]
+
+"""
+LOGGER
+"""
+
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+        "simple": {
+            "format": "[{levelname}] {message}",
+            "style": "{",
+        },
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name} ({module}:{funcName}) :: {message}",
+            "style": "{",
+        },
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "app.log",
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+    },
+
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "INFO",
+    },
+
+    "loggers": {
+        "uvicorn": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.access": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "sqlalchemy.engine": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        }
+    },
+}
+
+def setup_logging():
+    dictConfig(LOGGING_CONFIG)

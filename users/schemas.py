@@ -11,6 +11,7 @@ class UserBase(BaseModel):
 
 
 class UserOutputSchema(UserBase):
+    id: int
     created_at: datetime.datetime
 
 
