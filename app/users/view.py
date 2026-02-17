@@ -1,6 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException, Depends
 from app.config import SessionDep
+from app.mail_config import send_email_message
 from app.redis_config import add_jti_to_blocklist
 from app.users.models import UsersModel, RefreshTokenModel
 from app.users.schemas import UserInputSchema, UserOutputSchema

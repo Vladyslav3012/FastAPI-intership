@@ -7,7 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import (create_async_engine, async_sessionmaker,
                                     AsyncSession)
 from sqlalchemy.orm import DeclarativeBase, mapped_column
-from pydantic import computed_field, PostgresDsn, BaseModel
+from pydantic import computed_field, PostgresDsn, BaseModel, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,6 +42,12 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+
+    EMAIL_HOST: str
+    EMAIL_HOST_USER: str
+    EMAIL_HOST_PASSWORD: str
+    EMAIL_PORT: int
+    EMAIL_FROM: EmailStr
 
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / '.env', extra='ignore')
