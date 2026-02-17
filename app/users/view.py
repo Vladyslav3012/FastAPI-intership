@@ -1,16 +1,11 @@
 import logging
-import datetime
-
 from fastapi import APIRouter, HTTPException, Depends
-from watchfiles import awatch
-
-from conf import SessionDep, settings
-from users.models import UsersModel, RefreshTokenModel
-from users.schemas import UserInputSchema, UserOutputSchema
+from app.config import SessionDep
+from app.users.models import UsersModel, RefreshTokenModel
+from app.users.schemas import UserInputSchema, UserOutputSchema
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from users.utils import auth_utils, users_utils
-from users.utils.auth_utils import create_refresh_token
+from app.users.utils import auth_utils, users_utils
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Auth"], prefix='/users')
@@ -89,7 +84,7 @@ async def refresh_jwt(
     await session.delete(token_db)
 
     access_token = auth_utils.create_access_token(user)
-    _, refresh_token = await create_refresh_token(session, user)
+    _, refresh_token = await auth_utils.create_refresh_token(session, user)
 
     return auth_utils.TokenInfo(
         access_token=access_token,

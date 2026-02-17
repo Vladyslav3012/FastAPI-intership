@@ -7,8 +7,7 @@ from sqlalchemy import pool
 from alembic import context
 
 sys.path.append(os.path.join(sys.path[0], '..'))
-from users.models import UsersModel
-from conf import settings, Base
+from app.config import settings, Base
 
 
 

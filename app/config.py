@@ -11,7 +11,7 @@ from pydantic import computed_field, PostgresDsn, BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).parent.parent
 
 #shortcut for database tables
 class DatabaseShortcut:
@@ -20,8 +20,8 @@ class DatabaseShortcut:
 
 #jwt settings
 class AuthJWT(BaseModel):
-    private_key_path: Path = BASE_DIR / "certs" / "jwt-private.pem"
-    public_key_path: Path = BASE_DIR / "certs" / "jwt-public.pem"
+    private_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-private.pem"
+    public_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-public.pem"
     algorithm: str = "RS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_minutes: int = 60 * 24 * 30
@@ -40,8 +40,11 @@ class Settings(BaseSettings):
     TEST_DB_PASS: str
     TEST_DB_NAME: str
 
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
 
-    model_config = SettingsConfigDict(env_file='.env', extra='ignore')
+
+    model_config = SettingsConfigDict(env_file=BASE_DIR / '.env', extra='ignore')
 
     # for database connections with, and for pull out keys of .env
     @computed_field

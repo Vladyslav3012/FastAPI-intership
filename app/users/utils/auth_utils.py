@@ -1,15 +1,14 @@
 import datetime
 import logging
 import uuid
-
 import jwt
 from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException
 from fastapi.security import (HTTPAuthorizationCredentials, HTTPBearer)
 from pydantic import BaseModel
-from conf import settings, SessionDep
-from users.models import RefreshTokenModel
-from users.schemas import UserOutputSchema
+from app.config import settings, SessionDep
+from app.users.models import RefreshTokenModel
+from app.users.schemas import UserOutputSchema
 
 
 http_bearer = HTTPBearer()

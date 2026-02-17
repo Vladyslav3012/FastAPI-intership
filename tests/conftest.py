@@ -4,9 +4,9 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from typing import AsyncGenerator
 
-from main import app
-from conf import settings
-from conf import Base, get_session
+from app.main import app
+from app.config import settings
+from app.config import Base, get_session
 
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)

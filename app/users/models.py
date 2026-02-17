@@ -3,8 +3,8 @@ import enum
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Index, DateTime, ForeignKey
-from conf import Base, settings
-from users.utils.security_password import hash_password
+from app.config import Base, settings
+from app.users.utils.security_password import hash_password
 
 shortcut = settings.database_shortcut
 

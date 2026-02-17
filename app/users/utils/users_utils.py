@@ -1,12 +1,11 @@
 import logging
 from fastapi import Form, HTTPException, Depends
 from pydantic import EmailStr
-from conf import SessionDep
+from app.config import SessionDep
 from sqlalchemy import select
-
-from users.utils import auth_utils
-from users.models import UsersModel
-from users.utils.security_password import check_password
+from app.users.utils import auth_utils
+from app.users.models import UsersModel
+from app.users.utils.security_password import check_password
 
 logger = logging.getLogger(__name__)
 

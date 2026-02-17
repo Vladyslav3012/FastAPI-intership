@@ -1,10 +1,8 @@
 from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
-from conf import engine, Base, setup_logging
-from users.view import router as users_router
-from users.models import UsersModel
-
+from app.config import engine, Base, setup_logging
+from app.users.view import router as users_router
 
 setup_logging()
 
@@ -25,4 +23,4 @@ def main() -> str:
     return "Hello world"
 
 if __name__ == '__main__':
-    uvicorn.run("main:app", reload=True, reload_excludes=["*.log"])
+    uvicorn.run("app.main:app", reload=True, reload_excludes=["*.log"])

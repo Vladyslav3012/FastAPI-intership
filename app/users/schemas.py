@@ -20,7 +20,7 @@ class UserInputSchema(UserBase):
     check_password: str = Field(min_length=8, max_length=20)
 
     @model_validator(mode='after')
-    def check_password(self):
+    def check_password_match(self):
         p1 = self.password
         p2 = self.check_password
         if p1 != p2:

@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
-from users.models import RefreshTokenModel
+from app.users.models import RefreshTokenModel
 
 
 @pytest.mark.asyncio
