@@ -8,6 +8,7 @@ from alembic import context
 
 sys.path.append(os.path.join(sys.path[0], '..'))
 from app.config import settings, Base
+from app.users.models import UsersModel, RefreshTokenModel
 
 
 
