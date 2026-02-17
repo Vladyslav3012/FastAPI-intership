@@ -1,7 +1,11 @@
 from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
+from fastapi.params import Depends
+
+from users.utils import auth_utils, users_utils
 from app.config import engine, Base, setup_logging
+from app.users.schemas import UserOutputSchema
 from app.users.view import router as users_router
 
 setup_logging()
@@ -19,8 +23,11 @@ app.include_router(users_router)
 
 
 @app.get('/', tags=['Main'], summary='Main root')
-def main() -> str:
-    return "Hello world"
+def main(
+        user: UserOutputSchema =
+        Depends(users_utils.UserGetterFromTokenType(auth_utils.ACCESS_TOKEN_FIELD))
+) -> str:
+    return f"Hello {user.username}"
 
 if __name__ == '__main__':
     uvicorn.run("app.main:app", reload=True, reload_excludes=["*.log"])
