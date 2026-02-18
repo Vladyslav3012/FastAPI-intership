@@ -1,6 +1,5 @@
 import datetime
 import enum
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Index, DateTime, ForeignKey
 from app.config import Base, settings
@@ -23,6 +22,11 @@ class UsersModel(Base):
     _hashed_password_: Mapped[bytes]
     created_at: Mapped[shortcut.created_at]
     active: Mapped[bool] = mapped_column(default=True)
+    otp: Mapped[str | None] = mapped_column(nullable=True)
+    otp_expire: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True),
+                                                          nullable=True)
+    otp_try: Mapped[int | None] = mapped_column(nullable=True)
+    is_verified: Mapped[bool] = mapped_column(default=False)
     refresh_tokens: Mapped[list['RefreshTokenModel']] = relationship(back_populates="user")
 
     @property

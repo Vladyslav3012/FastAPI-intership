@@ -28,3 +28,6 @@ class UserInputSchema(UserBase):
         return self
 
 
+class UserActivateWithOTPSchema(BaseModel):
+    email: EmailStr
+    otp: str = Field(min_length=1, max_length=10)

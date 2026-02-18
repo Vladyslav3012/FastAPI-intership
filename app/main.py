@@ -6,7 +6,10 @@ from fastapi.params import Depends
 from app.users.utils import auth_utils, users_utils
 from app.config import engine, Base, setup_logging
 from app.users.schemas import UserOutputSchema
-from app.users.view import router as users_router
+from app.users.views.admin_view import router as users_admin_router
+from app.users.views.view_activate import router as user_activate_router
+from app.users.views.view_auth import router as user_auth_router
+
 
 setup_logging()
 
@@ -19,7 +22,9 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(users_router)
+app.include_router(users_admin_router)
+app.include_router(user_activate_router)
+app.include_router(user_auth_router)
 
 
 @app.get('/', tags=['Main'], summary='Main root')

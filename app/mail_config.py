@@ -1,6 +1,6 @@
 import logging
 
-from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
+from fastapi_mail import FastMail, ConnectionConfig
 from pydantic import NameEmail, BaseModel
 
 from .config import settings
@@ -28,13 +28,3 @@ mail = FastMail(
     config=mail_config
 )
 
-async def send_email_message(recipients: list[NameEmail], body: str, subject: str) -> None:
-    logger.info(f"Start sending email to {recipients}")
-    message = MessageSchema(recipients=recipients, body=body,
-                            subject=subject,
-                            subtype=MessageType.plain)
-    try:
-        await mail.send_message(message=message)
-        logger.info(f"Success sending email to {recipients}")
-    except Exception as e:
-        logger.exception(f"Email send error: {e}")

@@ -3,6 +3,7 @@ from fastapi import Form, HTTPException, Depends
 from pydantic import EmailStr
 from app.config import SessionDep
 from sqlalchemy import select
+
 from app.users.utils import auth_utils
 from app.users.models import UsersModel
 from app.users.utils.security_password import check_password

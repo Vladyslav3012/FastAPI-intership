@@ -1,4 +1,6 @@
 import datetime
+import random
+from datetime import timedelta
 from logging.config import dictConfig
 from pathlib import Path
 from typing import Annotated
@@ -40,8 +42,7 @@ class Settings(BaseSettings):
     TEST_DB_PASS: str
     TEST_DB_NAME: str
 
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
+    REDIS_URL: str = 'redis://localhost:6379/0'
 
     EMAIL_HOST: str
     EMAIL_HOST_USER: str
@@ -163,3 +164,23 @@ LOGGING_CONFIG = {
 
 def setup_logging():
     dictConfig(LOGGING_CONFIG)
+
+
+"""
+CELERY 
+"""
+broker_url = settings.REDIS_URL
+result_backend = settings.REDIS_URL
+
+"""
+OTP SETTINGS
+"""
+otp_expired_minutes = 5
+otp_try_conf = 3
+
+def create_otp_arg():
+    otp = str(random.randint(10000, 99999))
+    now = datetime.datetime.now(datetime.timezone.utc)
+    otp_expire = now + timedelta(minutes=otp_expired_minutes)
+    otp_try = otp_try_conf
+    return otp, otp_expire, otp_try

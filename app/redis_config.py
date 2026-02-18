@@ -3,12 +3,7 @@ import datetime
 import redis.asyncio as redis
 
 
-token_blacklist = redis.StrictRedis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=0,
-    decode_responses=True
-)
+token_blacklist = redis.from_url(settings.REDIS_URL)
 
 async def add_jti_to_blocklist(jti: str, exp: int) -> None:
     now = datetime.datetime.now(datetime.timezone.utc).timestamp()
