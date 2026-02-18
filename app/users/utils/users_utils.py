@@ -19,7 +19,7 @@ HELPERS FUNC
 async def check_auth_user_in_db(
         session: SessionDep,
         user_data: UserLogInSchema
-):
+) -> UsersModel:
     email = user_data.email
     password = user_data.password
 
@@ -36,7 +36,7 @@ async def check_auth_user_in_db(
     return user_db
 
 
-async def get_current_user_from_payload(payload: dict, session: SessionDep):
+async def get_current_user_from_payload(payload: dict, session: SessionDep) -> UsersModel:
     user_id = payload.get('id')
     if user_id is None:
         user_id = int(payload.get('sub'))

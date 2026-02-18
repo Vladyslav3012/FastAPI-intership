@@ -2,7 +2,7 @@ import datetime
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from ..utils.security_password import check_password
-from app.config import SessionDep, create_otp_arg, otp_expired_minutes
+from app.config import SessionDep, create_otp_arg, otp_expired_minutes, email_request_limit
 from app.users.models import UsersModel
 from app.users.schemas import UserResetPasswordSchema, UserOnlyEmailSchema, UserResetPasswordWithOTPSchema
 from app.users.utils import permission, auth_utils, users_utils
@@ -20,7 +20,7 @@ async def reset_user_password_auth(
         user_password: UserResetPasswordSchema,
         user: UsersModel =
         Depends(users_utils.UserGetterFromTokenType(auth_utils.ACCESS_TOKEN_FIELD)),
-):
+) -> dict:
     old_password = user_password.old_password
     new_password = user_password.new_password
 
@@ -42,11 +42,11 @@ async def reset_user_password_auth(
     raise HTTPException(400, "User not active or not verify")
 
 
-@router.post('/request-reset-password')
+@router.post('/request-reset-password', dependencies=[email_request_limit])
 async def request_otp_for_reset_user_password_unauth(
         session: SessionDep,
         email_data: UserOnlyEmailSchema
-):
+) -> dict:
     email = email_data.email
 
     user_db = await get_user_by_email(email, session)
@@ -80,7 +80,7 @@ async def request_otp_for_reset_user_password_unauth(
 async def reset_user_password_unauth(
         session: SessionDep,
         user_data: UserResetPasswordWithOTPSchema
-):
+) -> dict:
     email = user_data.email
     user_otp = user_data.otp
     new_password = user_data.new_password

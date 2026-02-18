@@ -10,6 +10,7 @@ from app.config import settings, SessionDep
 from app.redis_config import check_token_in_blacklist
 from app.users.models import RefreshTokenModel
 from app.users.schemas import UserOutputSchema
+from sqlalchemy import select
 
 
 http_bearer = HTTPBearer()
@@ -102,8 +103,6 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
     access_token = create_jwt(ACCESS_TOKEN_FIELD, jwt_access_payload,
                       settings.auth_jwt.access_token_expire_minutes)
 
-    await session.commit()
-
     return {
         "access_token": access_token,
         "refresh_token": refresh_token
@@ -117,7 +116,7 @@ HELPERS FUNC
 
 async def get_payload_from_token(
         credentials: HTTPAuthorizationCredentials = Depends(http_bearer)
-):
+) -> dict:
     token = credentials.credentials
     try:
         payload = decode_jwt(token=token, )
@@ -134,7 +133,7 @@ async def get_payload_from_token(
 
 
 #check type token if need to refresh token allow only refresh
-async def validate_token_by_type(payload: dict, token_type_to_check: str):
+async def validate_token_by_type(payload: dict, token_type_to_check: str) -> None:
     current_token_type = payload.get('type')
     if current_token_type != token_type_to_check:
         logger.error(f"Token {current_token_type=} error, expected {token_type_to_check}")
@@ -145,3 +144,20 @@ async def validate_token_by_type(payload: dict, token_type_to_check: str):
     if check:
         logger.error("Token in blacklist")
         raise HTTPException(401, "Invalid token")
+
+
+#clear old session with refresh token
+async def clean_old_sessions(user_id: int, session, limit: int = 5) -> None:
+    query = (select(RefreshTokenModel).
+             where(RefreshTokenModel.user_id == user_id)
+             .order_by(RefreshTokenModel.expire_at.asc()))
+
+    result = await session.execute(query)
+    tokens = result.scalars().all()
+
+    if len(tokens) >= limit:
+        to_delete_count = len(tokens) - limit + 1
+        tokens_to_delete = tokens[:to_delete_count]
+
+        for t in tokens_to_delete:
+            await session.delete(t)

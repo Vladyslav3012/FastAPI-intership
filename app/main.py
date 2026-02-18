@@ -37,5 +37,6 @@ def main(
 ) -> str:
     return f"Hello {user.username}"
 
+
 if __name__ == '__main__':
     uvicorn.run("app.main:app", reload=True, reload_excludes=["*.log"])

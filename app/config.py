@@ -12,6 +12,9 @@ from sqlalchemy.orm import DeclarativeBase, mapped_column
 from pydantic import computed_field, PostgresDsn, BaseModel, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pyrate_limiter import Duration, Limiter, Rate
+from fastapi_limiter.depends import RateLimiter
+
 
 BASE_DIR = Path(__file__).parent.parent
 
@@ -184,3 +187,10 @@ def create_otp_arg():
     otp_expire = now + timedelta(minutes=otp_expired_minutes)
     otp_try = otp_try_conf
     return otp, otp_expire, otp_try
+
+"""
+LIMIT REQUEST
+"""
+
+email_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(1, Duration.MINUTE * 1))))
+login_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(3, Duration.MINUTE * 1))))

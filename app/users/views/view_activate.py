@@ -1,7 +1,7 @@
 import datetime
 import logging
 from fastapi import APIRouter, HTTPException
-from app.config import SessionDep, create_otp_arg, otp_expired_minutes
+from app.config import SessionDep, create_otp_arg, otp_expired_minutes, email_request_limit
 from app.users.schemas import UserActivateWithOTPSchema, UserLogInSchema
 from app.users.utils.security_password import check_password
 from app.celery_config import create_email_message
@@ -14,7 +14,7 @@ router = APIRouter(tags=["Activate"], prefix='/users/activate')
 @router.post('/')
 async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
                                  session: SessionDep
-):
+) -> dict:
     user_email = input_data.email
     user_otp = input_data.otp
 
@@ -56,11 +56,11 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
                              f"try left {user_db.otp_try}")
 
 
-@router.post('/refresh')
+@router.post('/refresh', dependencies=[email_request_limit])
 async def activate_refresh_otp(
         session: SessionDep,
         user_data: UserLogInSchema
-):
+) -> dict:
     email = user_data.email
     password = user_data.password
 
