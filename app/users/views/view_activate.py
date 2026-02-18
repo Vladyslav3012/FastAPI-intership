@@ -1,14 +1,11 @@
 import datetime
 import logging
-from fastapi import APIRouter, HTTPException, Form
-from pydantic import EmailStr
-from sqlalchemy import select
+from fastapi import APIRouter, HTTPException
 from app.config import SessionDep, create_otp_arg, otp_expired_minutes
-from app.users.models import UsersModel
-from app.users.schemas import UserActivateWithOTPSchema
+from app.users.schemas import UserActivateWithOTPSchema, UserLogInSchema
 from app.users.utils.security_password import check_password
 from app.celery_config import create_email_message
-
+from app.users.utils.users_utils import get_user_by_email
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Activate"], prefix='/users/activate')
@@ -21,20 +18,14 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
     user_email = input_data.email
     user_otp = input_data.otp
 
-    query = select(UsersModel).where(UsersModel.email == user_email)
-    res = await session.execute(query)
-    user_db: UsersModel = res.scalars().one_or_none()
-
-    if user_db is None:
-        logger.info(f"User with {user_email=} not found")
-        raise HTTPException(400, f"Not found any user with this email")
+    user_db = await get_user_by_email(user_email, session)
 
     otp_in_db = user_db.otp
     otp_expire_in_db = user_db.otp_expire
     otp_try_in_db = user_db.otp_try
 
     if user_db.is_verified or not user_db.active:
-        logger.info(f"User {user_email=} already activate ot inactive")
+        logger.info(f"User {user_email=} already activate or inactive")
         raise HTTPException(400, "User already activated or inactive")
 
     if otp_in_db is None or otp_try_in_db is None:
@@ -68,17 +59,13 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
 @router.post('/refresh')
 async def activate_refresh_otp(
         session: SessionDep,
-        email: EmailStr = Form(),
-        password: str = Form(min_length=8, max_length=20)
+        user_data: UserLogInSchema
 ):
+    email = user_data.email
+    password = user_data.password
 
-    query = select(UsersModel).where(UsersModel.email == email)
-    res = await session.execute(query)
-    user_db: UsersModel = res.scalars().one_or_none()
+    user_db = await get_user_by_email(email, session)
 
-    if user_db is None:
-        logger.info(f"User with {email=} not found")
-        raise HTTPException(400, "Invalid credentials")
     if user_db.is_verified or not user_db.active:
         logger.info(f"User with {email=} already verified or inactive")
         raise HTTPException(400, "User already verified or inactive")

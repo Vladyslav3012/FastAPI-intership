@@ -1,9 +1,11 @@
 import logging
+
 from fastapi import Form, HTTPException, Depends
 from pydantic import EmailStr
 from app.config import SessionDep
 from sqlalchemy import select
 
+from app.users.schemas import UserLogInSchema
 from app.users.utils import auth_utils
 from app.users.models import UsersModel
 from app.users.utils.security_password import check_password
@@ -16,18 +18,15 @@ HELPERS FUNC
 
 async def check_auth_user_in_db(
         session: SessionDep,
-        email: EmailStr = Form(),
-        password: str = Form(min_length=8, max_length=20)
+        user_data: UserLogInSchema
 ):
+    email = user_data.email
+    password = user_data.password
+
     unauth_exception = HTTPException(status_code=401, detail="Invalid email or password")
 
-    query = select(UsersModel).where(UsersModel.email == email)
-    res = await session.execute(query)
-    user_db = res.scalars().one_or_none()
+    user_db = await get_user_by_email(email, session)
 
-    if user_db is None:
-        logger.error(f"User with {email=} not found")
-        raise unauth_exception
     if not check_password(password=password, hashed_password=user_db._hashed_password_):
         logger.error("Password did not match")
         raise unauth_exception
@@ -65,3 +64,13 @@ class UserGetterFromTokenType:
                        payload: dict = Depends(auth_utils.get_payload_from_token)):
         await auth_utils.validate_token_by_type(payload, self.token_type)
         return await get_current_user_from_payload(payload, session)
+
+
+async def get_user_by_email(email, session) -> UsersModel:
+    query = select(UsersModel).where(UsersModel.email == email)
+    res = await session.execute(query)
+    user = res.scalars().one_or_none()
+    if user is None:
+        logger.info(f"User with {email=} not found")
+        raise HTTPException(400, "User not found")
+    return user

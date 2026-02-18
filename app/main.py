@@ -9,6 +9,7 @@ from app.users.schemas import UserOutputSchema
 from app.users.views.admin_view import router as users_admin_router
 from app.users.views.view_activate import router as user_activate_router
 from app.users.views.view_auth import router as user_auth_router
+from app.users.views.view_reset_password import router as user_password_reset_router
 
 
 setup_logging()
@@ -21,10 +22,12 @@ async def lifespan(app: FastAPI):
     yield
     await engine.dispose()
 
+
 app = FastAPI(lifespan=lifespan)
 app.include_router(users_admin_router)
 app.include_router(user_activate_router)
 app.include_router(user_auth_router)
+app.include_router(user_password_reset_router)
 
 
 @app.get('/', tags=['Main'], summary='Main root')
