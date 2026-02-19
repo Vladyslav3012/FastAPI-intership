@@ -11,19 +11,20 @@ from sqlalchemy.ext.asyncio import (create_async_engine, async_sessionmaker,
 from sqlalchemy.orm import DeclarativeBase, mapped_column
 from pydantic import computed_field, PostgresDsn, BaseModel, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from pyrate_limiter import Duration, Limiter, Rate
 from fastapi_limiter.depends import RateLimiter
 
 
 BASE_DIR = Path(__file__).parent.parent
 
-#shortcut for database tables
+
+# shortcut for database tables
 class DatabaseShortcut:
     intpk = Annotated[int, mapped_column(primary_key=True)]
     created_at = Annotated[datetime.datetime, mapped_column(server_default=func.now())]
 
-#jwt settings
+
+# jwt settings
 class AuthJWT(BaseModel):
     private_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-private.pem"
     public_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-public.pem"
@@ -33,11 +34,11 @@ class AuthJWT(BaseModel):
 
 
 class Settings(BaseSettings):
-    DB_HOST: str
-    DB_PORT: int
-    DB_USER: str
-    DB_PASS: str
-    DB_NAME: str
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_USER: str = "postgres"
+    DB_PASS: str = 'key'
+    DB_NAME: str = 'key'
 
     TEST_DB_HOST: str
     TEST_DB_PORT: int
@@ -53,8 +54,8 @@ class Settings(BaseSettings):
     EMAIL_PORT: int
     EMAIL_FROM: EmailStr
 
-
-    model_config = SettingsConfigDict(env_file=BASE_DIR / '.env', extra='ignore')
+    model_config = SettingsConfigDict(env_file=BASE_DIR / '.env',
+                                      extra='ignore')
 
     # for database connections with, and for pull out keys of .env
     @computed_field
@@ -165,21 +166,25 @@ LOGGING_CONFIG = {
     },
 }
 
+
 def setup_logging():
     dictConfig(LOGGING_CONFIG)
 
 
 """
-CELERY 
+CELERY
 """
+
 broker_url = settings.REDIS_URL
 result_backend = settings.REDIS_URL
+broker_connection_retry_on_startup = True
 
 """
 OTP SETTINGS
 """
 otp_expired_minutes = 5
 otp_try_conf = 3
+
 
 def create_otp_arg():
     otp = str(random.randint(10000, 99999))
@@ -188,9 +193,12 @@ def create_otp_arg():
     otp_try = otp_try_conf
     return otp, otp_expire, otp_try
 
+
 """
 LIMIT REQUEST
 """
 
-email_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(1, Duration.MINUTE * 1))))
-login_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(3, Duration.MINUTE * 1))))
+email_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(1,
+                                                               Duration.MINUTE * 1))))
+login_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(3,
+                                                               Duration.MINUTE * 1))))

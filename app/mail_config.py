@@ -1,12 +1,11 @@
 import logging
-
 from fastapi_mail import FastMail, ConnectionConfig
 from pydantic import NameEmail, BaseModel
-
 from .config import settings
 
 
 logger = logging.getLogger(__name__)
+
 
 class EmailSchema(BaseModel):
     emails: list[NameEmail]
@@ -27,4 +26,3 @@ mail_config = ConnectionConfig(
 mail = FastMail(
     config=mail_config
 )
-

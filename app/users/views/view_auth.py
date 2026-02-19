@@ -16,7 +16,7 @@ router = APIRouter(tags=["Auth"], prefix='/users/auth')
 
 @router.post('/sign', response_model=UserOutputSchema)
 async def signup_user(user: UserInputSchema, session: SessionDep) -> UsersModel:
-    #create args for otp verify
+    # create args for otp verify
     otp, otp_expire, otp_try = create_otp_arg()
 
     try:
@@ -25,7 +25,7 @@ async def signup_user(user: UserInputSchema, session: SessionDep) -> UsersModel:
             username=user.username,
             age=user.age,
             password=user.password,
-            #add otp args in model
+            # add otp args in model
             otp=otp,
             otp_expire=otp_expire,
             otp_try=otp_try
@@ -33,7 +33,7 @@ async def signup_user(user: UserInputSchema, session: SessionDep) -> UsersModel:
         session.add(new_user)
         await session.commit()
 
-        #sending email with otp
+        # sending email with otp
         subject = "Welcome on our website"
         body = ("Now you need to verify you account with otp"
                 f" You code is: {otp}"
@@ -50,8 +50,8 @@ async def signup_user(user: UserInputSchema, session: SessionDep) -> UsersModel:
 
 @router.post('/login', dependencies=[login_request_limit])
 async def login_user(session: SessionDep,
-                     user: UserOutputSchema = Depends(users_utils.check_auth_user_in_db)
-) -> auth_utils.TokenInfo:
+                     user: UserOutputSchema =
+                     Depends(users_utils.check_auth_user_in_db)) -> auth_utils.TokenInfo:
 
     tokens = await auth_utils.create_token_pair(session, user)
     access_token = tokens.get('access_token')

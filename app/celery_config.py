@@ -11,7 +11,8 @@ c_app.config_from_object('app.config')
 
 
 @c_app.task
-def create_email_message(recipients: list[NameEmail], subject: str, body: str) -> bool:
+def create_email_message(recipients: list[NameEmail],
+                         subject: str, body: str) -> bool:
     logger.info(f"Start sending email to {recipients}")
     message = MessageSchema(recipients=recipients, body=body,
                             subject=subject,

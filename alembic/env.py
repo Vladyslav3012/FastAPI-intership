@@ -11,9 +11,6 @@ from app.config import settings, Base
 from app.users.models import UsersModel, RefreshTokenModel
 
 
-
-
-
 config = context.config
 
 if config.config_file_name is not None:

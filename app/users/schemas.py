@@ -44,7 +44,6 @@ class UserPasswordBaseSchema(BaseModel):
     new_password: str = Field(min_length=8, max_length=20)
     check_new_password: str = Field(min_length=8, max_length=20)
 
-
     @model_validator(mode='after')
     def check_password_match(self):
         p1 = self.new_password

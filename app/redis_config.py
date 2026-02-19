@@ -5,6 +5,7 @@ import redis.asyncio as redis
 
 token_blacklist = redis.from_url(settings.REDIS_URL)
 
+
 async def add_jti_to_blocklist(jti: str, exp: int) -> None:
     now = datetime.datetime.now(datetime.timezone.utc).timestamp()
     ttl = int(exp - now)

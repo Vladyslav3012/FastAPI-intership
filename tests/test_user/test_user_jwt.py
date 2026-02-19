@@ -25,14 +25,13 @@ async def test_access_token(client: AsyncClient, db_session):
     tokens = login_response.json()
     access_token = tokens["access_token"]
     assert access_token is not None
-
+    headers = {"Authorization": f"Bearer {access_token}"}
     me_response = await client.get("/users/me",
-                                   headers={"Authorization": f"Bearer {access_token}"})
+                                   headers=headers)
     assert me_response.status_code == 200
     me_data = me_response.json()
     assert me_data["email"] == sign_data["email"]
     assert me_data["username"] == sign_data["username"]
-
 
 
 @pytest.mark.asyncio
@@ -45,7 +44,6 @@ async def test_refresh_token(client: AsyncClient, db_session):
         "check_password": "password123"
     }
     await client.post('/users/sign', json=sign_data)
-
 
     login_data = {
         "email": sign_data['email'],
@@ -85,5 +83,3 @@ async def test_refresh_token(client: AsyncClient, db_session):
         headers={"Authorization": f"Bearer {refresh_token}"}
     )
     assert reuse_res.status_code == 401
-
-

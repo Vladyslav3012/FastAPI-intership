@@ -13,8 +13,7 @@ router = APIRouter(tags=["Only admin"], prefix='/users')
 
 @router.get('/',
             response_model=dict[str, list[UserOutputSchema]],
-            dependencies=[permission.IsAdmin]
-)
+            dependencies=[permission.IsAdmin])
 async def get_all_user(session: SessionDep) -> dict:
     query = select(UsersModel)
     res = await session.execute(query)

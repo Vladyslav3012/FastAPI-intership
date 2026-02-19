@@ -5,10 +5,10 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException
 from fastapi.security import (HTTPAuthorizationCredentials, HTTPBearer)
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from app.config import settings, SessionDep
 from app.redis_config import check_token_in_blacklist
-from app.users.models import RefreshTokenModel
+from app.users.models import RefreshTokenModel, UsersModel
 from app.users.schemas import UserOutputSchema
 from sqlalchemy import select
 
@@ -31,9 +31,12 @@ class TokenInfo(BaseModel):
     refresh_token: str | None = None
     token_type: str = "Bearer"
 
+
 """
 CREATE TOKEN AND DECODE
 """
+
+
 def encode_jwt(payload: dict,
                expire_minutes: int,
                private_key: str = settings.auth_jwt.private_key_path.read_text(),
@@ -43,7 +46,7 @@ def encode_jwt(payload: dict,
     expire = now + datetime.timedelta(minutes=expire_minutes)
 
     to_encode = payload.copy()
-    to_encode.update(iat=now ,exp=expire)
+    to_encode.update(iat=now, exp=expire)
 
     token = jwt.encode(payload=to_encode,
                        key=private_key,
@@ -54,7 +57,7 @@ def encode_jwt(payload: dict,
 def decode_jwt(token: str | bytes,
                public_key: str = settings.auth_jwt.public_key_path.read_text(),
                algorithm: str = settings.auth_jwt.algorithm
-):
+               ):
     decode_token = jwt.decode(jwt=token,
                               key=public_key,
                               algorithms=[algorithm])
@@ -69,7 +72,7 @@ def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
 
 async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict:
 
-    #create refresh token
+    # create refresh token
     jti_refresh = str(uuid.uuid4())
 
     now = datetime.datetime.now(datetime.UTC)
@@ -87,10 +90,11 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
         'jti': jti_refresh
 
     }
-    refresh_token = create_jwt(REFRESH_TOKEN_FIELD, jwt_refresh_payload,
-                           settings.auth_jwt.refresh_token_expire_minutes)
+    refresh_token = create_jwt(REFRESH_TOKEN_FIELD,
+                               jwt_refresh_payload,
+                               settings.auth_jwt.refresh_token_expire_minutes)
 
-    #access token
+    # access token
     jti_access = str(uuid.uuid4())
 
     jwt_access_payload = {
@@ -101,7 +105,7 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
         "refresh_jti": jti_refresh
     }
     access_token = create_jwt(ACCESS_TOKEN_FIELD, jwt_access_payload,
-                      settings.auth_jwt.access_token_expire_minutes)
+                              settings.auth_jwt.access_token_expire_minutes)
 
     return {
         "access_token": access_token,
@@ -109,10 +113,10 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
     }
 
 
-
 """
 HELPERS FUNC
 """
+
 
 async def get_payload_from_token(
         credentials: HTTPAuthorizationCredentials = Depends(http_bearer)
@@ -132,7 +136,7 @@ async def get_payload_from_token(
     return payload
 
 
-#check type token if need to refresh token allow only refresh
+# check type token if need to refresh token allow only refresh
 async def validate_token_by_type(payload: dict, token_type_to_check: str) -> None:
     current_token_type = payload.get('type')
     if current_token_type != token_type_to_check:
@@ -146,7 +150,7 @@ async def validate_token_by_type(payload: dict, token_type_to_check: str) -> Non
         raise HTTPException(401, "Invalid token")
 
 
-#clear old session with refresh token
+# clear old session with refresh token
 async def clean_old_sessions(user_id: int, session, limit: int = 5) -> None:
     query = (select(RefreshTokenModel).
              where(RefreshTokenModel.user_id == user_id)
@@ -161,3 +165,26 @@ async def clean_old_sessions(user_id: int, session, limit: int = 5) -> None:
 
         for t in tokens_to_delete:
             await session.delete(t)
+
+
+def validate_user_otp_state(user_db: UsersModel, otp_in_db: str,
+                            otp_try_in_db: int,
+                            otp_expire_in_db: datetime.datetime,
+                            user_provided_otp: str,
+                            email: EmailStr):
+    if not user_db.is_verified or not user_db.active:
+        logger.info(f"User {email=} inactivate or inactive")
+        raise HTTPException(400, "User already activated or inactive")
+
+    if otp_in_db is None or otp_try_in_db is None:
+        logger.info(f'OTP or otp try in user with {email=} == None')
+        raise HTTPException(400, "No active otp, resend request to activate")
+
+    if otp_try_in_db <= 0:
+        raise HTTPException(400, "You have no more attempts. "
+                                 "Please request a new code")
+
+    if otp_expire_in_db < datetime.datetime.now(datetime.timezone.utc):
+        raise HTTPException(400, "Your code expired. Please request a new code")
+
+    return user_provided_otp == otp_in_db

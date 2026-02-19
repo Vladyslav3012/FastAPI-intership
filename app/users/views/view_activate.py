@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from app.config import SessionDep, create_otp_arg, otp_expired_minutes, email_request_limit
 from app.users.schemas import UserActivateWithOTPSchema, UserLogInSchema
+from app.users.utils.auth_utils import validate_user_otp_state
 from app.users.utils.security_password import check_password
 from app.celery_config import create_email_message
 from app.users.utils.users_utils import get_user_by_email
@@ -13,8 +14,7 @@ router = APIRouter(tags=["Activate"], prefix='/users/activate')
 
 @router.post('/')
 async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
-                                 session: SessionDep
-) -> dict:
+                                 session: SessionDep) -> dict:
     user_email = input_data.email
     user_otp = input_data.otp
 
@@ -24,21 +24,13 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
     otp_expire_in_db = user_db.otp_expire
     otp_try_in_db = user_db.otp_try
 
-    if user_db.is_verified or not user_db.active:
-        logger.info(f"User {user_email=} already activate or inactive")
-        raise HTTPException(400, "User already activated or inactive")
+    validate_otp = validate_user_otp_state(user_db=user_db, otp_in_db=otp_in_db,
+                            otp_try_in_db=otp_try_in_db,
+                            otp_expire_in_db=otp_expire_in_db,
+                            user_provided_otp=user_otp,
+                            email=user_email)
 
-    if otp_in_db is None or otp_try_in_db is None:
-        logger.info(f'OTP or otp try in user with {user_email=} == None')
-        raise HTTPException(400, "No active otp, resend request to activate")
-
-    if otp_try_in_db <= 0:
-        raise HTTPException(400, "You have no more attempts."
-                                 " Please request a new code")
-    if otp_expire_in_db < datetime.datetime.now(datetime.timezone.utc):
-        raise HTTPException(400, "You code expired. Please request a new code")
-
-    if otp_in_db == user_otp:
+    if validate_otp:
         user_db.is_verified = True
 
         user_db.otp = None
@@ -78,7 +70,7 @@ async def activate_refresh_otp(
         user_db.otp_expire = otp_expire
         user_db.otp_try = otp_try
 
-        #sending email with otp
+        # sending email with otp
         subject = "You email ask to refresh code for verifi account"
         body = ("If you do not ask this code, ignore this email."
                 f" You code is: {otp}"
@@ -94,6 +86,3 @@ async def activate_refresh_otp(
 
     logger.info("User send invalid password")
     raise HTTPException(400, "Invalid credentials")
-
-
-

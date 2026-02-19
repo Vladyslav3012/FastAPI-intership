@@ -1,7 +1,5 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
-from app.users.models import RefreshTokenModel
 
 
 @pytest.mark.asyncio
@@ -26,12 +24,11 @@ async def test_logout_user(client: AsyncClient, db_session):
 
     tokens = login_response.json()
     access_token = tokens["access_token"]
-
+    headers = {"Authorization": f"Bearer {access_token}"}
     logout_response = await client.post('/users/logout',
-                                        headers={"Authorization": f"Bearer {access_token}"})
+                                        headers=headers)
     assert logout_response.status_code == 200
 
     me_response = await client.get("/users/me",
-                                   headers={"Authorization": f"Bearer {access_token}"})
+                                   headers=headers)
     assert me_response.status_code == 401
-

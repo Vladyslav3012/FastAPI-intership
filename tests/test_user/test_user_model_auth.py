@@ -29,7 +29,7 @@ async def test_register_user(client: AsyncClient, db_session):
     assert user_in_db is not None
     assert user_in_db.id == 1
     assert user_in_db._hashed_password_ != user_data.get('password')
-    assert user_in_db.active == True
+    assert user_in_db.active is True
     assert user_in_db.role == UserRoleEnum.regular
 
 
@@ -54,6 +54,7 @@ async def test_password_not_match_register(client: AsyncClient, db_session):
 
     assert user_in_db is None
 
+
 @pytest.mark.asyncio
 async def test_email_has_been_used(client: AsyncClient, db_session):
     user_data = {
@@ -77,4 +78,3 @@ async def test_email_has_been_used(client: AsyncClient, db_session):
     user_in_db = result.scalars().one_or_none()
 
     assert user_in_db is not None
-

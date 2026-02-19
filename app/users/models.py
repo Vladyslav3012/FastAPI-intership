@@ -7,9 +7,11 @@ from app.users.utils.security_password import hash_password
 
 shortcut = settings.database_shortcut
 
+
 class UserRoleEnum(enum.Enum):
-    admin="admin"
-    regular="regular"
+    admin = "admin"
+    regular = "regular"
+
 
 class UsersModel(Base):
     __tablename__ = 'users'
@@ -23,11 +25,12 @@ class UsersModel(Base):
     created_at: Mapped[shortcut.created_at]
     active: Mapped[bool] = mapped_column(default=True)
     otp: Mapped[str | None] = mapped_column(nullable=True)
-    otp_expire: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True),
-                                                          nullable=True)
+    otp_expire: Mapped[datetime.datetime | None] = (
+        mapped_column(DateTime(timezone=True), nullable=True))
     otp_try: Mapped[int | None] = mapped_column(nullable=True)
     is_verified: Mapped[bool] = mapped_column(default=False)
-    refresh_tokens: Mapped[list['RefreshTokenModel']] = relationship(back_populates="user")
+    refresh_tokens: Mapped[list['RefreshTokenModel']] = (
+        relationship(back_populates="user"))
 
     @property
     def password(self):
@@ -50,4 +53,3 @@ class RefreshTokenModel(Base):
     expire_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"))
     user: Mapped["UsersModel"] = relationship(back_populates='refresh_tokens')
-

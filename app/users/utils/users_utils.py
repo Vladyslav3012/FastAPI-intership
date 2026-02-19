@@ -1,7 +1,6 @@
 import logging
 
-from fastapi import Form, HTTPException, Depends
-from pydantic import EmailStr
+from fastapi import HTTPException, Depends
 from app.config import SessionDep
 from sqlalchemy import select
 
@@ -15,6 +14,7 @@ logger = logging.getLogger(__name__)
 """
 HELPERS FUNC
 """
+
 
 async def check_auth_user_in_db(
         session: SessionDep,
