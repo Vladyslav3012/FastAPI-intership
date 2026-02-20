@@ -1,0 +1,55 @@
+import datetime
+import enum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Index, DateTime, ForeignKey
+from app.config import Base, settings
+from app.users.utils.security_password import hash_password
+
+shortcut = settings.database_shortcut
+
+
+class UserRoleEnum(enum.Enum):
+    admin = "admin"
+    regular = "regular"
+
+
+class UsersModel(Base):
+    __tablename__ = 'users'
+
+    id: Mapped[shortcut.intpk]
+    email: Mapped[str] = mapped_column(unique=True)
+    username: Mapped[str]
+    age: Mapped[int | None]
+    role: Mapped[UserRoleEnum] = mapped_column(default=UserRoleEnum.regular)
+    _hashed_password_: Mapped[bytes]
+    created_at: Mapped[shortcut.created_at]
+    active: Mapped[bool] = mapped_column(default=True)
+    otp: Mapped[str | None] = mapped_column(nullable=True)
+    otp_expire: Mapped[datetime.datetime | None] = (
+        mapped_column(DateTime(timezone=True), nullable=True))
+    otp_try: Mapped[int | None] = mapped_column(nullable=True)
+    is_verified: Mapped[bool] = mapped_column(default=False)
+    refresh_tokens: Mapped[list['RefreshTokenModel']] = (
+        relationship(back_populates="user"))
+
+    @property
+    def password(self):
+        return self._hashed_password_
+
+    @password.setter
+    def password(self, text_password):
+        self._hashed_password_ = hash_password(text_password)
+
+    __table_args__ = (
+        Index("email_index", "email"),
+    )
+
+
+class RefreshTokenModel(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[shortcut.intpk]
+    jti: Mapped[str] = mapped_column(unique=True, index=True)
+    expire_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"))
+    user: Mapped["UsersModel"] = relationship(back_populates='refresh_tokens')

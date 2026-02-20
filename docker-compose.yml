@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+    ports:
+      - "5432:5432"
+  web:
+    build: .
+    volumes:
+      - .:/src
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+
+  celery:
+    build: .
+    command: celery -A app.celery_config.c_app worker -l info --max-tasks-per-child=1000
+    volumes:
+      - .:/src
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+    environment:
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
