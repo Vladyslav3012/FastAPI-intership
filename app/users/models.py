@@ -1,9 +1,14 @@
 import datetime
 import enum
+from typing import TYPE_CHECKING
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Index, DateTime, ForeignKey
 from app.config import Base, settings
 from app.users.utils.security_password import hash_password
+if TYPE_CHECKING:
+    from app.crypto.models import AlertModel
+
 
 shortcut = settings.database_shortcut
 
@@ -31,6 +36,8 @@ class UsersModel(Base):
     is_verified: Mapped[bool] = mapped_column(default=False)
     refresh_tokens: Mapped[list['RefreshTokenModel']] = (
         relationship(back_populates="user"))
+
+    alerts: Mapped[list['AlertModel']] = relationship(back_populates="user")
 
     @property
     def password(self):
