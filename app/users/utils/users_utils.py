@@ -28,10 +28,10 @@ async def check_auth_user_in_db(
     user_db = await get_user_by_email(email, session)
 
     if not check_password(password=password, hashed_password=user_db._hashed_password_):
-        logger.error("Password did not match")
+        logger.info("Password did not match")
         raise unauth_exception
     if not user_db.active:
-        logger.error(f"User {email=} inactive")
+        logger.info(f"User {email=} inactive")
         raise HTTPException(status_code=403, detail="User inactive")
     return user_db
 
@@ -48,10 +48,10 @@ async def get_current_user_from_payload(payload: dict, session: SessionDep) -> U
     user_db = res.scalars().one_or_none()
 
     if user_db is None:
-        logger.error(f"User with {user_id=} not found")
+        logger.info(f"User with {user_id=} not found")
         raise unauth_exception
     if not user_db.active:
-        logger.error(f"{user_id=} inactive")
+        logger.info(f"{user_id=} inactive")
         raise HTTPException(status_code=403, detail="User inactive")
     return user_db
 

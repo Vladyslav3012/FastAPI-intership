@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 JWT token
 """
 
-TOKEN_TYPE_FIELD = "type"
 ACCESS_TOKEN_FIELD = "access"
 REFRESH_TOKEN_FIELD = "refresh"
 
@@ -65,7 +64,7 @@ def decode_jwt(token: str | bytes,
 
 
 def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
-    jwt_payload = {TOKEN_TYPE_FIELD: token_type}
+    jwt_payload = {"type": token_type}
     jwt_payload.update(token_data)
     return encode_jwt(payload=jwt_payload, expire_minutes=expire_minutes)
 
@@ -125,28 +124,28 @@ async def get_payload_from_token(
     try:
         payload = decode_jwt(token=token, )
     except InvalidTokenError as e:
-        logger.error(f"Token error: {e}")
+        logger.info(f"User enter invalid token: {e}")
         raise HTTPException(401, 'Invalid token')
 
     jti = payload.get("jti")
     if not jti:
-        logger.error("Token has not jti")
+        logger.info("User send token without jti")
         raise HTTPException(401, "Invalid token")
 
     return payload
 
 
-# check type token if need to refresh token allow only refresh
+# check type token, when need to refresh token allow only refresh
 async def validate_token_by_type(payload: dict, token_type_to_check: str) -> None:
     current_token_type = payload.get('type')
     if current_token_type != token_type_to_check:
-        logger.error(f"Token {current_token_type=} error, expected {token_type_to_check}")
+        logger.info(f"Token {current_token_type=} get, expected {token_type_to_check}")
         raise HTTPException(401, "Invalid token")
 
     jti = payload.get('jti')
     check = await check_token_in_blacklist(jti)
     if check:
-        logger.error("Token in blacklist")
+        logger.info("Token in blacklist")
         raise HTTPException(401, "Invalid token")
 
 

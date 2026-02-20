@@ -10,6 +10,7 @@ from app.users.schemas import UserOutputSchema, UserInputSchema
 from app.users.utils import users_utils, auth_utils
 from app.users.utils.auth_utils import clean_old_sessions
 
+
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Auth"], prefix='/users/auth')
 
