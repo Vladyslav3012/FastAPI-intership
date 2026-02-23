@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     TEST_DB_PASS: str
     TEST_DB_NAME: str
 
-    REDIS_URL: str = 'redis://localhost:6379/0'
+    REDIS_URL: str = 'redis://localhost:6379'
 
     EMAIL_HOST: str
     EMAIL_HOST_USER: str
