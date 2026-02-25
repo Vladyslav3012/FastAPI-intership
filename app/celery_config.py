@@ -7,7 +7,7 @@ c_app = Celery(
     include=[
         "app.crypto.tasks",
         "app.parsing.tasks",
-        "app.mail.tasks"
+        "app.users.tasks",
     ]
 )
 
@@ -15,7 +15,7 @@ c_app.config_from_object('app.config')
 
 c_app.conf.beat_schedule = {
     'update_coin_price': {
-        'task': 'app.crypto.tasks..update_coin_price',
+        'task': 'app.crypto.tasks.update_coin_price',
         'schedule': 10.0
     },
     'cleanup_scraped_files': {

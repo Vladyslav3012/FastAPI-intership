@@ -23,7 +23,7 @@ async def check_auth_user_in_db(
     email = user_data.email
     password = user_data.password
 
-    unauth_exception = HTTPException(status_code=401, detail="Invalid email or password")
+    unauth_exception = HTTPException(status_code=401, detail="Invalid credentials")
 
     user_db = await get_user_by_email(email, session)
 
@@ -41,7 +41,7 @@ async def get_current_user_from_payload(payload: dict, session: SessionDep) -> U
     if user_id is None:
         user_id = int(payload.get('sub'))
 
-    unauth_exception = HTTPException(status_code=401, detail="Invalid email or password")
+    unauth_exception = HTTPException(status_code=401, detail="Invalid credentials")
 
     query = select(UsersModel).where(UsersModel.id == user_id)
     res = await session.execute(query)
@@ -72,5 +72,5 @@ async def get_user_by_email(email, session) -> UsersModel:
     user = res.scalars().one_or_none()
     if user is None:
         logger.info(f"User with {email=} not found")
-        raise HTTPException(400, "User not found")
+        raise HTTPException(400, "Invalid credentials")
     return user

@@ -2,7 +2,7 @@ import logging
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, HTTPException, Depends
-from app.celery_config import sending_email_message
+from app.users.tasks import sending_email_message
 from app.config import SessionDep, create_otp_arg, otp_expired_minutes, login_request_limit
 from app.redis_config import add_jti_to_blocklist, check_token_in_blacklist
 from app.users.models import UsersModel, RefreshTokenModel

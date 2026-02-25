@@ -1,5 +1,7 @@
 import logging
 import os
+from time import sleep
+
 from bs4 import BeautifulSoup
 from curl_cffi import Session
 from app.celery_config import c_app
@@ -24,7 +26,7 @@ def parsing_site(self, url):
     clean_html = doc.summary()
 
     soup = BeautifulSoup(clean_html, 'html.parser')
-    clean_text = soup.get_text(separator='\n', strip=True)
+    clean_text = soup.get_text(separator=' ', strip=True)
 
     save_dir = "scrapped_files"
     os.makedirs(save_dir, exist_ok=True)
@@ -36,7 +38,6 @@ def parsing_site(self, url):
         file.write(f"--- Parsing website: {url} ---\n\n")
         file.write(f"--- Title: {article_title} ---\n")
         file.write(clean_text)
-
     return filepath
 
 

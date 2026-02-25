@@ -4,7 +4,7 @@ from app.config import SessionDep, create_otp_arg, otp_expired_minutes, email_re
 from app.users.schemas import UserActivateWithOTPSchema, UserLogInSchema
 from app.users.utils.auth_utils import validate_user_otp_state
 from app.users.utils.security_password import check_password
-from app.celery_config import sending_email_message
+from app.users.tasks import sending_email_message
 from app.users.utils.users_utils import get_user_by_email
 
 logger = logging.getLogger(__name__)

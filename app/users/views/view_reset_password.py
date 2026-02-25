@@ -8,7 +8,7 @@ from app.users.models import UsersModel
 from app.users.schemas import UserResetPasswordSchema, UserOnlyEmailSchema, UserResetPasswordWithOTPSchema
 from app.users.utils import permission, auth_utils, users_utils
 from ..utils.users_utils import get_user_by_email
-from app.celery_config import sending_email_message
+from app.users.tasks import sending_email_message
 
 
 router = APIRouter(tags=["Password changes"], prefix='/users')

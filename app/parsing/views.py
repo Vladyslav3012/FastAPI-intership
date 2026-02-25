@@ -22,11 +22,12 @@ user_agent = UserAgent().random
 @router.get("/web/status/{task_id}")
 async def get_status_task_by_id(task_id: str):
     task_result = AsyncResult(task_id, app=c_app)
+    task_status = task_result.state
 
-    if task_result.state == 'PENDING' or task_result.state == 'STARTED':
-        return {"status": task_result.state, "message": "Parsing in process..."}
+    if task_status == 'PENDING' or task_status == 'STARTED':
+        return {"status": task_status, "message": "Parsing in process..."}
 
-    elif task_result.state == 'SUCCESS':
+    elif task_status == 'SUCCESS':
         filepath = task_result.result
 
         if not os.path.exists(filepath):
@@ -39,11 +40,11 @@ async def get_status_task_by_id(task_id: str):
             media_type='text/plain'
         )
 
-    elif task_result.state == 'FAILURE':
+    elif task_status == 'FAILURE':
         return {"status": "FAILED", "error": str(task_result.result)}
 
     else:
-        return {"status": task_result.state}
+        return {"status": task_status}
 
 
 @router.get('/web')
@@ -57,7 +58,7 @@ async def parsing_site_by_url(url: HttpUrl):
     }
 
 
-@router.get("crypto/current_price/{coin_name}")
+@router.get("/crypto/current_price/{coin_name}")
 async def get_current_token_price(coin_name: EnumNameCoin):
     coin_name_value = coin_name.value
 
