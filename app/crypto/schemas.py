@@ -4,7 +4,6 @@ from app.crypto.models import ConditionsEnum
 
 class CoinSchema(BaseModel):
     id: int
-    short_name: str
     name: str
     current_price: float
     last_updated: datetime.datetime
@@ -13,7 +12,7 @@ class CoinSchema(BaseModel):
 
 
 class AlertInputSchema(BaseModel):
-    coin_short_name: str = Field(min_length=2, max_length=5)
+    coin_name: str = Field(min_length=2, max_length=20)
     target_price: float = Field(gt=0.0)
     conditions: ConditionsEnum
 

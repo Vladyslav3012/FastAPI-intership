@@ -7,7 +7,7 @@ from typing import AsyncGenerator
 
 from app.main import app
 from app.config import settings
-from app.config import Base, get_session
+from app.config import Base, async_get_session
 from app.redis_config import token_blacklist
 
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
@@ -45,7 +45,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session):
-    app.dependency_overrides[get_session] = lambda: db_session
+    app.dependency_overrides[async_get_session] = lambda: db_session
     async with AsyncClient(transport=ASGITransport(app=app),
                            base_url="http://test") as ac:
         yield ac

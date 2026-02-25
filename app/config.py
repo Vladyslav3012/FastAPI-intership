@@ -5,10 +5,10 @@ from logging.config import dictConfig
 from pathlib import Path
 from typing import Annotated
 from fastapi import Depends
-from sqlalchemy import func
+from sqlalchemy import func, create_engine
 from sqlalchemy.ext.asyncio import (create_async_engine, async_sessionmaker,
                                     AsyncSession)
-from sqlalchemy.orm import DeclarativeBase, mapped_column
+from sqlalchemy.orm import DeclarativeBase, mapped_column, sessionmaker
 from pydantic import computed_field, PostgresDsn, BaseModel, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pyrate_limiter import Duration, Limiter, Rate
@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     EMAIL_PORT: int
     EMAIL_FROM: EmailStr
 
+    DEMO_COINGECKO_KEY: str
+
     model_config = SettingsConfigDict(env_file=BASE_DIR / '.env',
                                       extra='ignore')
 
@@ -93,17 +95,23 @@ settings = Settings()
 DATABASE SETTINGS SESSION
 """
 
-engine = create_async_engine(settings.database_url, echo=True)
+async_engine = create_async_engine(settings.database_url, echo=True)
 
-new_session = async_sessionmaker(engine, expire_on_commit=False)
+async_new_session = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
-async def get_session():
-    async with new_session() as session:
+async def async_get_session():
+    async with async_new_session() as session:
         yield session
 
 
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
+SessionDep = Annotated[AsyncSession, Depends(async_get_session)]
+
+
+# sync db
+sync_db_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+sync_engine = create_engine(sync_db_url)
+sync_new_session = sessionmaker(autoflush=False, autocommit=False, bind=sync_engine)
 
 
 class Base(DeclarativeBase):
@@ -178,6 +186,7 @@ CELERY
 broker_url = settings.REDIS_URL
 result_backend = settings.REDIS_URL
 broker_connection_retry_on_startup = True
+task_track_started = True
 
 """
 OTP SETTINGS

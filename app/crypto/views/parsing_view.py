@@ -3,17 +3,17 @@ from curl_cffi.requests import AsyncSession
 from fastapi import APIRouter, HTTPException
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-from app.crypto.utils import EnumShortName, parsing_url, formated_to_display_price
+from app.crypto.utils import EnumNameCoin, parsing_url, formated_to_display_price
 from app.redis_config import add_price_to_list, check_coin_in_list
 
 
-router = APIRouter(tags=['Crypto'], prefix='/crypto')
+router = APIRouter(tags=['Parsing'], prefix='/crypto/parsing')
 logger = logging.getLogger(__name__)
 user_agent = UserAgent().random
 
 
 @router.get("/current_price/{coin_name}")
-async def get_current_token_price(coin_name: EnumShortName):
+async def get_current_token_price(coin_name: EnumNameCoin):
     coin_name_value = coin_name.value
 
     # check price in cache
@@ -45,8 +45,9 @@ async def get_current_token_price(coin_name: EnumShortName):
 
     if price_tag:
         raw_value = price_tag.get('data-price-usd')
-        clean_price = float(raw_value)
         logger.info(f"Raw value {raw_value}")
+
+        clean_price = float(raw_value)
 
         display_price = formated_to_display_price(clean_price)
 

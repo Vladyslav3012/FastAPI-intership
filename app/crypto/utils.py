@@ -1,13 +1,21 @@
 import enum
+from app.config import settings
 
 
 parsing_url = "https://www.coingecko.com/en/coins"
 
-class EnumShortName(enum.Enum):
+demo_coingecko_key = settings.DEMO_COINGECKO_KEY
+coins = "bitcoin,ethereum,tether,ripple,solana"
+api_crypto_url = (f"https://api.coingecko.com/api/v3/simple/"
+                  f"price?vs_currencies=usd&ids={coins}&"
+                  f"x_cg_demo_api_key={demo_coingecko_key}")
+
+
+class EnumNameCoin(enum.Enum):
     btc = 'bitcoin'
     eth = 'ethereum'
     usdt = 'tether'
-    xrp = 'xrp'
+    ripple = 'ripple'
     solana = 'solana'
 
 

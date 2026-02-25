@@ -17,8 +17,7 @@ class CoinModel(Base):
     __tablename__ = "coins"
 
     id: Mapped[shortcut.intpk]
-    short_name: Mapped[str] = mapped_column(unique=True, index=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True, index=True)
     current_price: Mapped[float]
     last_updated: Mapped[datetime.datetime] = (
         mapped_column(DateTime(timezone=True),

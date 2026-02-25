@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from .config import settings
 import datetime
 import redis.asyncio as redis
