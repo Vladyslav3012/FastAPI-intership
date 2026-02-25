@@ -1,13 +1,10 @@
 import datetime
-from typing import TYPE_CHECKING
-
 from app.config import Base
 from app.config import settings
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, func, DateTime
 from enum import Enum
-if TYPE_CHECKING:
-    from app.users.models import UsersModel
+from app.users.models import UsersModel
 
 
 shortcut = settings.database_shortcut
@@ -43,5 +40,5 @@ class AlertModel(Base):
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[shortcut.created_at]
 
-    coin: Mapped["CoinModel"] = relationship(back_populates='alerts')
-    user: Mapped['UsersModel'] = relationship(back_populates='alerts')
+    coin: Mapped[CoinModel] = relationship(back_populates='alerts')
+    user: Mapped[UsersModel] = relationship(back_populates='alerts')

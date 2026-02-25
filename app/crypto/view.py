@@ -39,7 +39,6 @@ async def subscription_to_alert(data: AlertInputSchema,
     await session.commit()
 
     new_alert.coin = coin
-
     return new_alert
 
 
@@ -50,5 +49,6 @@ async def get_my_alert(session: SessionDep, user: UsersModel =
     query = (select(AlertModel)
              .options(joinedload(AlertModel.coin))
              .where(AlertModel.user_id == user.id))
+
     result = await session.execute(query)
     return result.scalars().all()

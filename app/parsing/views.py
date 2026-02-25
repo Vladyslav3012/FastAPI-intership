@@ -1,18 +1,63 @@
 import logging
-from curl_cffi.requests import AsyncSession
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
+from celery.result import AsyncResult
+from pydantic import HttpUrl
+from app.parsing.tasks import parsing_site
+from app.celery_config import c_app
+import os
+from curl_cffi.requests import AsyncSession
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-from app.crypto.utils import EnumNameCoin, parsing_url, formated_to_display_price
+from app.crypto.utils import formated_to_display_price
+from app.parsing.utils import EnumNameCoin, parsing_url
 from app.redis_config import add_price_to_list, check_coin_in_list
 
 
-router = APIRouter(tags=['Parsing'], prefix='/crypto/parsing')
+router = APIRouter(tags=['Parsing'], prefix='/parsing')
 logger = logging.getLogger(__name__)
 user_agent = UserAgent().random
 
 
-@router.get("/current_price/{coin_name}")
+@router.get("/web/status/{task_id}")
+async def get_status_task_by_id(task_id: str):
+    task_result = AsyncResult(task_id, app=c_app)
+
+    if task_result.state == 'PENDING' or task_result.state == 'STARTED':
+        return {"status": task_result.state, "message": "Parsing in process..."}
+
+    elif task_result.state == 'SUCCESS':
+        filepath = task_result.result
+
+        if not os.path.exists(filepath):
+            logger.error(f"File not found in you disk {filepath=}")
+            raise HTTPException(status_code=404, detail="File path error")
+
+        return FileResponse(
+            path=filepath,
+            filename="parsed_website.txt",
+            media_type='text/plain'
+        )
+
+    elif task_result.state == 'FAILURE':
+        return {"status": "FAILED", "error": str(task_result.result)}
+
+    else:
+        return {"status": task_result.state}
+
+
+@router.get('/web')
+async def parsing_site_by_url(url: HttpUrl):
+    res: AsyncResult = parsing_site.delay(str(url))
+    return {
+        "task_id": res.id,
+        "task_status": res.status,
+        "task_ready": res.ready(),
+        "check_status": f"/parsing/web/status/{res.id}"
+    }
+
+
+@router.get("crypto/current_price/{coin_name}")
 async def get_current_token_price(coin_name: EnumNameCoin):
     coin_name_value = coin_name.value
 
@@ -60,4 +105,3 @@ async def get_current_token_price(coin_name: EnumNameCoin):
             "display_price": display_price
         }
     return {"Error": "Tag not found "}
-

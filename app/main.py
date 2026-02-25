@@ -10,8 +10,8 @@ from app.users.views.view_activate import router as user_activate_router
 from app.users.views.view_auth import router as user_auth_router
 from app.users.views.view_reset_password import (router as
                                                  user_password_reset_router)
-from app.crypto.views.parsing_view import router as crypto_router
-from app.crypto.views.alert_view import router as alert_router
+from app.crypto.view import router as alert_router
+from app.parsing.views import router as web_parsing_router
 
 
 setup_logging()
@@ -22,8 +22,8 @@ app.include_router(users_admin_router)
 app.include_router(user_activate_router)
 app.include_router(user_auth_router)
 app.include_router(user_password_reset_router)
-app.include_router(crypto_router)
 app.include_router(alert_router)
+app.include_router(web_parsing_router)
 
 
 @app.get('/', tags=['Main'], summary='Main root')

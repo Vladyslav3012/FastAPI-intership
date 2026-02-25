@@ -1,7 +1,6 @@
 import datetime
 import enum
 from typing import TYPE_CHECKING
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Index, DateTime, ForeignKey
 from app.config import Base, settings
@@ -59,4 +58,4 @@ class RefreshTokenModel(Base):
     jti: Mapped[str] = mapped_column(unique=True, index=True)
     expire_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"))
-    user: Mapped["UsersModel"] = relationship(back_populates='refresh_tokens')
+    user: Mapped[UsersModel] = relationship(back_populates='refresh_tokens')
