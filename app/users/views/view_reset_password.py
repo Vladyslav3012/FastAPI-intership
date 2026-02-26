@@ -8,7 +8,7 @@ from app.users.models import UsersModel
 from app.users.schemas import UserResetPasswordSchema, UserOnlyEmailSchema, UserResetPasswordWithOTPSchema
 from app.users.utils import permission, auth_utils, users_utils
 from ..utils.users_utils import get_user_by_email
-from app.celery_config import create_email_message
+from app.users.tasks import sending_email_message
 
 
 router = APIRouter(tags=["Password changes"], prefix='/users')
@@ -67,7 +67,7 @@ async def request_otp_for_reset_user_password_unauth(
     body = ("If you do not ask this code, ignore this email."
             f" You code is: {otp}"
             f" You have {otp_expired_minutes} minutes to activate with this code")
-    create_email_message.delay([email], subject, body)
+    sending_email_message.delay([email], subject, body)
 
     logger.info(f"Success sending otp for reset password to {email=}")
 

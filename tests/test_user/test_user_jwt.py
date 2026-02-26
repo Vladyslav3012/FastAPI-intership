@@ -1,3 +1,4 @@
+from unittest.mock import patch, AsyncMock
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -5,28 +6,32 @@ from app.users.models import RefreshTokenModel
 
 
 @pytest.mark.asyncio
-async def test_access_token(client: AsyncClient, db_session):
+@patch('app.users.views.view_auth.sending_email_message.delay')
+@patch('app.users.utils.auth_utils.check_token_in_blacklist', new_callable=AsyncMock)
+async def test_access_token(mock_redis_check, mock_email,
+                            client: AsyncClient, db_session):
 
+    mock_redis_check.return_value = False
     sign_data = {
         "email": "access@test.com",
         "username": "access",
         "password": "password123",
         "check_password": "password123"
     }
-    await client.post('/users/sign', json=sign_data)
+    await client.post('/users/auth/sign', json=sign_data)
 
     login_data = {
         "email": sign_data['email'],
         "password": sign_data['password']
     }
-    login_response = await client.post("/users/login", data=login_data)
+    login_response = await client.post("/users/auth/login", json=login_data)
     assert login_response.status_code == 200
 
     tokens = login_response.json()
     access_token = tokens["access_token"]
     assert access_token is not None
     headers = {"Authorization": f"Bearer {access_token}"}
-    me_response = await client.get("/users/me",
+    me_response = await client.get("/users/auth/me",
                                    headers=headers)
     assert me_response.status_code == 200
     me_data = me_response.json()
@@ -35,7 +40,12 @@ async def test_access_token(client: AsyncClient, db_session):
 
 
 @pytest.mark.asyncio
-async def test_refresh_token(client: AsyncClient, db_session):
+@patch('app.users.views.view_auth.sending_email_message.delay')
+@patch('app.users.utils.auth_utils.check_token_in_blacklist', new_callable=AsyncMock)
+async def test_refresh_token(mock_redis_check, mock_email,
+                             client: AsyncClient, db_session):
+
+    mock_redis_check.return_value = False
 
     sign_data = {
         "email": "refresh@test.com",
@@ -43,13 +53,13 @@ async def test_refresh_token(client: AsyncClient, db_session):
         "password": "password123",
         "check_password": "password123"
     }
-    await client.post('/users/sign', json=sign_data)
+    await client.post('/users/auth/sign', json=sign_data)
 
     login_data = {
         "email": sign_data['email'],
         "password": sign_data['password']
     }
-    login_response = await client.post("/users/login", data=login_data)
+    login_response = await client.post("/users/auth/login", json=login_data)
     assert login_response.status_code == 200
 
     query_old = select(RefreshTokenModel)
@@ -61,7 +71,7 @@ async def test_refresh_token(client: AsyncClient, db_session):
     refresh_token = tokens['refresh_token']
 
     refresh_res = await client.post(
-        "/users/refresh",
+        "/users/auth/refresh",
         headers={"Authorization": f"Bearer {refresh_token}"}
     )
     assert refresh_res.status_code == 200
@@ -78,8 +88,8 @@ async def test_refresh_token(client: AsyncClient, db_session):
     assert tokens_in_db[0].jti != old_jti
     assert new_refresh_token != refresh_token
 
-    reuse_res = await client.post(
-        "/users/refresh",
+    refresh_res = await client.post(
+        "/users/auth/refresh",
         headers={"Authorization": f"Bearer {refresh_token}"}
     )
-    assert reuse_res.status_code == 401
+    assert refresh_res.status_code == 401

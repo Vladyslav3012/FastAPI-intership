@@ -4,10 +4,11 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import (create_async_engine,
                                     async_sessionmaker, AsyncSession)
 from typing import AsyncGenerator
-
+from unittest.mock import patch
+from fastapi import Request, Response
 from app.main import app
 from app.config import settings
-from app.config import Base, get_session
+from app.config import Base, async_get_session
 from app.redis_config import token_blacklist
 
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
@@ -45,7 +46,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session):
-    app.dependency_overrides[get_session] = lambda: db_session
+    app.dependency_overrides[async_get_session] = lambda: db_session
     async with AsyncClient(transport=ASGITransport(app=app),
                            base_url="http://test") as ac:
         yield ac
@@ -57,3 +58,12 @@ async def client(db_session):
 async def clear_redis():
     yield
     await token_blacklist.aclose()
+
+
+async def mock_rate_limiter_call(self, request: Request, response: Response):
+    return None
+
+@pytest_asyncio.fixture(autouse=True)
+def disable_rate_limiting():
+    with patch('fastapi_limiter.depends.RateLimiter.__call__', new=mock_rate_limiter_call):
+        yield

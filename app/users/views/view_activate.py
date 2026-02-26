@@ -1,11 +1,10 @@
-import datetime
 import logging
 from fastapi import APIRouter, HTTPException
 from app.config import SessionDep, create_otp_arg, otp_expired_minutes, email_request_limit
 from app.users.schemas import UserActivateWithOTPSchema, UserLogInSchema
 from app.users.utils.auth_utils import validate_user_otp_state
 from app.users.utils.security_password import check_password
-from app.celery_config import create_email_message
+from app.users.tasks import sending_email_message
 from app.users.utils.users_utils import get_user_by_email
 
 logger = logging.getLogger(__name__)
@@ -75,7 +74,7 @@ async def activate_refresh_otp(
         body = ("If you do not ask this code, ignore this email."
                 f" You code is: {otp}"
                 f" You have {otp_expired_minutes} minutes to activate with this code")
-        create_email_message.delay([email], subject, body)
+        sending_email_message.delay([email], subject, body)
 
         logger.info(f"Success sending new otp to {email=}")
 

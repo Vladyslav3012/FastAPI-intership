@@ -1,26 +1,25 @@
-import logging
+from celery.schedules import crontab
 from celery import Celery
-from fastapi_mail import MessageSchema, NameEmail, MessageType
-from app.mail_config import mail
-from asgiref.sync import async_to_sync
 
 
-logger = logging.getLogger(__name__)
-c_app = Celery()
+c_app = Celery(
+    "celery_bot",
+    include=[
+        "app.crypto.tasks",
+        "app.parsing.tasks",
+        "app.users.tasks",
+    ]
+)
+
 c_app.config_from_object('app.config')
 
-
-@c_app.task
-def create_email_message(recipients: list[NameEmail],
-                         subject: str, body: str) -> bool:
-    logger.info(f"Start sending email to {recipients}")
-    message = MessageSchema(recipients=recipients, body=body,
-                            subject=subject,
-                            subtype=MessageType.plain)
-    try:
-        async_to_sync(mail.send_message)(message)
-        logger.info(f"Success sending email to {recipients}")
-        return True
-    except Exception as e:
-        logger.exception(f"Email send error: {e}")
-        return False
+c_app.conf.beat_schedule = {
+    'update_coin_price': {
+        'task': 'app.crypto.tasks.update_coin_price',
+        'schedule': 10.0
+    },
+    'cleanup_scraped_files': {
+        'task': 'app.parsing.tasks.cleanup_old_files',
+        'schedule': crontab(hour=3, minute=0)
+    }
+}

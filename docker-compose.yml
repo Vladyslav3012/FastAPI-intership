@@ -41,6 +41,20 @@ services:
       - DB_HOST=db
       - REDIS_URL=redis://redis:6379/0
 
+  celery_beat:
+    build: .
+    command: celery -A app.celery_config.c_app beat -l info
+    volumes:
+      - .:/src
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+    environment:
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+
   redis:
     image: redis:6-alpine
     ports:
