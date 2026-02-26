@@ -25,7 +25,7 @@ async def get_status_task_by_id(task_id: str):
     task_status = task_result.state
 
     if task_status == 'PENDING' or task_status == 'STARTED':
-        return {"status": task_status, "message": "Parsing in process..."}
+        return {"status": task_status, "message": "Task not found or already in running"}
 
     elif task_status == 'SUCCESS':
         filepath = task_result.result

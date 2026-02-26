@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -5,7 +7,8 @@ from app.users.models import UsersModel, UserRoleEnum
 
 
 @pytest.mark.asyncio
-async def test_register_user(client: AsyncClient, db_session):
+@patch('app.users.views.view_auth.sending_email_message.delay')
+async def test_register_user(mock_delay, client: AsyncClient, db_session):
     user_data = {
         "email": "test@example.com",
         "username": "testuser",
@@ -14,7 +17,7 @@ async def test_register_user(client: AsyncClient, db_session):
         "check_password": "password123"
     }
 
-    response = await client.post("/users/sign", json=user_data)
+    response = await client.post("/users/auth/sign", json=user_data)
 
     assert response.status_code == 200
     data = response.json()
@@ -34,7 +37,8 @@ async def test_register_user(client: AsyncClient, db_session):
 
 
 @pytest.mark.asyncio
-async def test_password_not_match_register(client: AsyncClient, db_session):
+@patch('app.users.views.view_auth.sending_email_message.delay')
+async def test_password_not_match_register(mock_delay, client: AsyncClient, db_session):
     user_data = {
         "email": "test@example.com",
         "username": "testuser",
@@ -43,7 +47,7 @@ async def test_password_not_match_register(client: AsyncClient, db_session):
         "check_password": "password"
     }
 
-    response = await client.post("/users/sign", json=user_data)
+    response = await client.post("/users/auth/sign", json=user_data)
 
     assert response.status_code == 422
     data = response.json()
@@ -56,7 +60,8 @@ async def test_password_not_match_register(client: AsyncClient, db_session):
 
 
 @pytest.mark.asyncio
-async def test_email_has_been_used(client: AsyncClient, db_session):
+@patch('app.users.views.view_auth.sending_email_message.delay')
+async def test_email_has_been_used(mock_delay, client: AsyncClient, db_session):
     user_data = {
         "email": "test@example.com",
         "username": "testuser",
@@ -65,10 +70,10 @@ async def test_email_has_been_used(client: AsyncClient, db_session):
         "check_password": "password123"
     }
 
-    response = await client.post("/users/sign", json=user_data)
+    response = await client.post("/users/auth/sign", json=user_data)
     assert response.status_code == 200
 
-    second_response = await client.post("/users/sign", json=user_data)
+    second_response = await client.post("/users/auth/sign", json=user_data)
     assert second_response.status_code == 409
     data = second_response.json()
     assert "This email has been used" in str(data)
