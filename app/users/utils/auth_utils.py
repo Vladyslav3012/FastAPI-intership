@@ -171,7 +171,12 @@ def validate_user_otp_state(user_db: UsersModel, otp_in_db: str,
                             otp_expire_in_db: datetime.datetime,
                             user_provided_otp: str,
                             email: EmailStr):
-    if not user_db.is_verified or not user_db.active:
+
+    logger.info(
+    f"DEBUG user state before validate_user_otp_state: "
+    f"{email=}, is_verified={user_db.is_verified}, active={user_db.active}"
+)
+    if user_db.is_verified or not user_db.active:
         logger.info(f"User {email=} inactivate or inactive")
         raise HTTPException(400, "User already activated or inactive")
 
