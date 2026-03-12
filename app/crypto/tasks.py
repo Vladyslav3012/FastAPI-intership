@@ -65,7 +65,9 @@ def check_alert_after_update():
         ).where(AlertModel.is_active == True)
 
         alerts: list[AlertModel] = session.execute(query).scalars().all()
-
+        logger.info(f"Start checking alert list {len(alerts)=}")
+        
+        success_alert = 0
         for alert in alerts:
             now = datetime.datetime.now(datetime.timezone.utc)
 
@@ -86,6 +88,7 @@ def check_alert_after_update():
                 is_true = True
 
             if is_true:
+                logger.info(f"Alert {alert.id} worked, start sending email")
                 alert.is_active = False
 
                 # sending email
@@ -103,5 +106,8 @@ def check_alert_after_update():
                 Time of Alert: {now} (UTC)
                 """
                 sending_email_message.delay([current_user_email], subject, body)
-
+                logger.info(f"Alert: Success sending email to {current_user_email}")
+                success_alert += 1
+                
+        logger.info(f"Success check all alerts {success_alert=}")
         session.commit()

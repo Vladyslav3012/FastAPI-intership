@@ -21,6 +21,7 @@ def parsing_site(self, url):
             logger.error(f"Parsing site return {response.status_code}")
             raise Exception(f"Parsing site error: {response.status_code}")
 
+    logger.info("Success parsing web, start cleaning text")
     doc = Document(response.text)
     article_title = doc.title()
     clean_html = doc.summary()
@@ -38,11 +39,13 @@ def parsing_site(self, url):
         file.write(f"--- Parsing website: {url} ---\n\n")
         file.write(f"--- Title: {article_title} ---\n")
         file.write(clean_text)
+    logger.info(f"Finish parsing website")
     return filepath
 
 
 @c_app.task
 def cleanup_old_files():
+    logger.info('Start clean up old files from parsing websit')
     save_dir = "scrapped_files"
 
     if not os.path.exists(save_dir):

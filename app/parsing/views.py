@@ -19,15 +19,29 @@ logger = logging.getLogger(__name__)
 user_agent = UserAgent().random
 
 
+@router.get('/web')
+async def parsing_site_by_url(url: HttpUrl):
+    res: AsyncResult = parsing_site.delay(str(url))
+    return {
+        "task_id": res.id,
+        "task_status": res.status,
+        "task_ready": res.ready(),
+        "check_status": f"/parsing/web/status/{res.id}"
+    }
+
+
 @router.get("/web/status/{task_id}")
 async def get_status_task_by_id(task_id: str):
+    logger.info(f"Start checking task status with {task_id=}")
     task_result = AsyncResult(task_id, app=c_app)
     task_status = task_result.state
 
     if task_status == 'PENDING' or task_status == 'STARTED':
+        logger.info('Task still pending or started')
         return {"status": task_status, "message": "Task not found or already in running"}
 
     elif task_status == 'SUCCESS':
+        logger.info(f"Task with {task_id=} start create response")
         filepath = task_result.result
 
         if not os.path.exists(filepath):
@@ -41,31 +55,24 @@ async def get_status_task_by_id(task_id: str):
         )
 
     elif task_status == 'FAILURE':
-        return {"status": "FAILED", "error": str(task_result.result)}
+        logger.error(f"Error parsing web site {str(task_result.result)}")
+        return {"status": "FAILED", "msg": "Please try again"}
 
     else:
+        logger.error(f"Unknown task status {task_status}")
         return {"status": task_status}
-
-
-@router.get('/web')
-async def parsing_site_by_url(url: HttpUrl):
-    res: AsyncResult = parsing_site.delay(str(url))
-    return {
-        "task_id": res.id,
-        "task_status": res.status,
-        "task_ready": res.ready(),
-        "check_status": f"/parsing/web/status/{res.id}"
-    }
-
+    
 
 @router.get("/crypto/current_price/{coin_name}")
 async def get_current_token_price(coin_name: EnumNameCoin):
     coin_name_value = coin_name.value
-
+    logger.info(f"Start parsing current price for {coin_name=}")
+    
     # check price in cache
     price_from_cache = await check_coin_in_list(coin_name_value)
     if price_from_cache:
         display_price = formated_to_display_price(price_from_cache)
+        logger.info(f"{coin_name=} foun in cache, fast response")
         return {
             "coin": coin_name_value,
             "price": price_from_cache,
@@ -84,6 +91,7 @@ async def get_current_token_price(coin_name: EnumNameCoin):
             raise HTTPException(status_code=400, detail=f"Failed to fetch data, status: {response.status_code}")
 
         html_text = response.text
+        logger.info(f"Success parsing current price for {coin_name}, cleanup text")
 
     soup = BeautifulSoup(html_text, 'lxml')
     price_tag = soup.select_one('span[data-price-usd]')
@@ -100,9 +108,11 @@ async def get_current_token_price(coin_name: EnumNameCoin):
         # add price to cache
         await add_price_to_list(coin_name_value, clean_price)
 
+        logger.info(f"Success parsing coin price, return response, {coin_name_value}: {clean_price}")
         return {
             "coin": coin_name_value,
             "price": clean_price,
             "display_price": display_price
         }
+    logger.error(f"Price tag not found")
     return {"Error": "Tag not found "}

@@ -50,6 +50,7 @@ def encode_jwt(payload: dict,
     token = jwt.encode(payload=to_encode,
                        key=private_key,
                        algorithm=algorithm)
+    logger.info(f"Success create token")
     return token
 
 
@@ -64,6 +65,7 @@ def decode_jwt(token: str | bytes,
 
 
 def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
+    logger.info(f"Start create token {token_type=}")
     jwt_payload = {"type": token_type}
     jwt_payload.update(token_data)
     return encode_jwt(payload=jwt_payload, expire_minutes=expire_minutes)

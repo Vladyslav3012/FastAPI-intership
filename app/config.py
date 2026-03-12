@@ -95,7 +95,7 @@ settings = Settings()
 DATABASE SETTINGS SESSION
 """
 
-async_engine = create_async_engine(settings.database_url, echo=True)
+async_engine = create_async_engine(settings.database_url)
 
 async_new_session = async_sessionmaker(async_engine, expire_on_commit=False)
 
