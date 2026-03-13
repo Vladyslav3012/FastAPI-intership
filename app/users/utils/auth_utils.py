@@ -50,7 +50,7 @@ def encode_jwt(payload: dict,
     token = jwt.encode(payload=to_encode,
                        key=private_key,
                        algorithm=algorithm)
-    logger.info(f"Success create token")
+    logger.info("Success create token")
     return token
 
 
@@ -174,10 +174,9 @@ def validate_user_otp_state(user_db: UsersModel, otp_in_db: str,
                             user_provided_otp: str,
                             email: EmailStr):
 
-    logger.info(
-    f"DEBUG user state before validate_user_otp_state: "
-    f"{email=}, is_verified={user_db.is_verified}, active={user_db.active}"
-)
+    logger.info(f"DEBUG user state before validate_user_otp_state: "
+                "{email=}, is_verified={user_db.is_verified}, active={user_db.active}"
+                )
     if user_db.is_verified or not user_db.active:
         logger.info(f"User {email=} inactivate or inactive")
         raise HTTPException(400, "User already activated or inactive")

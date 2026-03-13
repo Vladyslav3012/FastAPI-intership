@@ -1,6 +1,5 @@
 import logging
 import os
-from time import sleep
 
 from bs4 import BeautifulSoup
 from curl_cffi import Session
@@ -39,7 +38,7 @@ def parsing_site(self, url):
         file.write(f"--- Parsing website: {url} ---\n\n")
         file.write(f"--- Title: {article_title} ---\n")
         file.write(clean_text)
-    logger.info(f"Finish parsing website")
+    logger.info("Finish parsing website")
     return filepath
 
 

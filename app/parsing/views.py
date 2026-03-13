@@ -38,7 +38,8 @@ async def get_status_task_by_id(task_id: str):
 
     if task_status == 'PENDING' or task_status == 'STARTED':
         logger.info('Task still pending or started')
-        return {"status": task_status, "message": "Task not found or already in running"}
+        return {"status": task_status, "message": "Task not found or "
+                                                  "already in running"}
 
     elif task_status == 'SUCCESS':
         logger.info(f"Task with {task_id=} start create response")
@@ -61,13 +62,13 @@ async def get_status_task_by_id(task_id: str):
     else:
         logger.error(f"Unknown task status {task_status}")
         return {"status": task_status}
-    
+
 
 @router.get("/crypto/current_price/{coin_name}")
 async def get_current_token_price(coin_name: EnumNameCoin):
     coin_name_value = coin_name.value
     logger.info(f"Start parsing current price for {coin_name=}")
-    
+
     # check price in cache
     price_from_cache = await check_coin_in_list(coin_name_value)
     if price_from_cache:
@@ -88,7 +89,8 @@ async def get_current_token_price(coin_name: EnumNameCoin):
 
         if response.status_code != 200:
             logger.error(f"Parsing return {response.status_code}")
-            raise HTTPException(status_code=400, detail=f"Failed to fetch data, status: {response.status_code}")
+            raise HTTPException(status_code=400,
+                                detail=f"Failed to fetch data, status: {response.status_code}")
 
         html_text = response.text
         logger.info(f"Success parsing current price for {coin_name}, cleanup text")
@@ -114,5 +116,5 @@ async def get_current_token_price(coin_name: EnumNameCoin):
             "price": clean_price,
             "display_price": display_price
         }
-    logger.error(f"Price tag not found")
+    logger.error("Price tag not found")
     return {"Error": "Tag not found "}

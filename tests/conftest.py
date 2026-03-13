@@ -63,27 +63,27 @@ async def clear_redis():
 async def mock_rate_limiter_call(self, request: Request, response: Response):
     return None
 
+
 @pytest_asyncio.fixture(autouse=True)
 def disable_rate_limiting():
     with patch('fastapi_limiter.depends.RateLimiter.__call__', new=mock_rate_limiter_call):
         yield
 
 
-
 @pytest_asyncio.fixture(scope="function")
 @patch('app.users.views.view_auth.sending_email_message.delay')
 @patch('app.users.utils.auth_utils.check_token_in_blacklist', new_callable=AsyncMock)
 async def authorized_client(mock_redis_check, mock_email,
-                                client: AsyncClient):
+                            client: AsyncClient):
 
     mock_redis_check.return_value = False
 
     sign_data = {
-    "email": "test@test.com",
-    "username": "test",
-    "password": "password123",
-    "check_password": "password123"
-    }
+        "email": "test@test.com",
+        "username": "test",
+        "password": "password123",
+        "check_password": "password123"
+        }
     await client.post('/users/auth/sign', json=sign_data)
 
     login_data = {

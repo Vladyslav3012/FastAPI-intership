@@ -64,7 +64,7 @@ async def login_user(session: SessionDep,
 
     await session.commit()
     logger.info(f"Success login {user.email=}")
-    
+
     return auth_utils.TokenInfo(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -79,7 +79,6 @@ async def logout_user(
     jti = payload.get('jti')
     exp = payload.get('exp')
     refresh_jti = payload.get('refresh_jti')
-    email = payload.get('email')
 
     if await check_token_in_blacklist(jti):
         logger.warning(f"Token with {jti=} already in black list")

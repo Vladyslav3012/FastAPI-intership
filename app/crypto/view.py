@@ -21,8 +21,8 @@ async def subscription_to_alert(data: AlertInputSchema,
                                 user: UsersModel =
                                 Depends(UserGetterFromTokenType(ACCESS_TOKEN_FIELD))):
     logger.infp(f"Start create alert for {data.coin_name} by {user.email}")
-    
-    query  = select(CoinModel).where(CoinModel.name == data.coin_name)
+
+    query = select(CoinModel).where(CoinModel.name == data.coin_name)
     result = await session.execute(query)
     coin: CoinModel = result.scalars().one_or_none()
 
@@ -39,7 +39,8 @@ async def subscription_to_alert(data: AlertInputSchema,
 
     session.add(new_alert)
     await session.commit()
-    logger.info(f"User {user.email} success create new alert for coin {data.coin_name}")
+    logger.info(f"User {user.email} success "
+                "create new alert for coin {data.coin_name}")
 
     new_alert.coin = coin
     return new_alert

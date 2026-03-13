@@ -15,10 +15,11 @@ async def add_jti_to_blocklist(jti: str, exp: int) -> None:
     ttl = int(exp - now)
     logger.info(f"Try add token in blacklist. Args: {jti=}, {ttl=}")
     if ttl <= 0:
-        logger.info(f"Token has been expired, cancel add to blacklist")
+        logger.info("Token has been expired, cancel add to blacklist")
         return
     await token_blacklist.set(name=jti, value='', ex=ttl)
     logger.info(f"Succes add token with {jti=} to blacklist. TTL: {ttl}")
+
 
 async def check_token_in_blacklist(jti: str) -> bool:
     logger.info(f'Try get token with {jti=}')

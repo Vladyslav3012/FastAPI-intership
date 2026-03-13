@@ -37,7 +37,7 @@ def update_coin_price():
     logger.info(f"Coin data preview call func upsert {coin_data}")
 
     if not coin_data:
-        logger.error(f"Does not exist coin data")
+        logger.error("Does not exist coin data")
         return
 
     with sync_new_session() as session:
@@ -56,17 +56,16 @@ def update_coin_price():
         check_alert_after_update.delay()
 
 
-
 @c_app.task
 def check_alert_after_update():
     with sync_new_session() as session:
         query = select(AlertModel).options(
             joinedload(AlertModel.coin), joinedload(AlertModel.user)
-        ).where(AlertModel.is_active == True)
+        ).where(AlertModel.is_active is True)
 
         alerts: list[AlertModel] = session.execute(query).scalars().all()
         logger.info(f"Start checking alert list {len(alerts)=}")
-        
+
         success_alert = 0
         for alert in alerts:
             now = datetime.datetime.now(datetime.timezone.utc)
@@ -92,7 +91,8 @@ def check_alert_after_update():
                 alert.is_active = False
 
                 # sending email
-                subject = f"[ACTION REQUIRED] {coin_name} reached your target of ${target_price}!"
+                subject = f"[ACTION REQUIRED] {coin_name}"
+                "reached your target of ${target_price}!"
                 body = f"""
                 Hello {current_user.username}
                 The market is moving! Your price alert for {coin_name} has just been triggered.
@@ -105,9 +105,10 @@ def check_alert_after_update():
 
                 Time of Alert: {now} (UTC)
                 """
-                sending_email_message.delay([current_user_email], subject, body)
+                sending_email_message.delay([current_user_email],
+                                            subject, body)
                 logger.info(f"Alert: Success sending email to {current_user_email}")
                 success_alert += 1
-                
+
         logger.info(f"Success check all alerts {success_alert=}")
         session.commit()

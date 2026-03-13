@@ -25,10 +25,10 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
     otp_try_in_db = user_db.otp_try
 
     validate_otp = validate_user_otp_state(user_db=user_db, otp_in_db=otp_in_db,
-                            otp_try_in_db=otp_try_in_db,
-                            otp_expire_in_db=otp_expire_in_db,
-                            user_provided_otp=user_otp,
-                            email=user_email)
+                                           otp_try_in_db=otp_try_in_db,
+                                           otp_expire_in_db=otp_expire_in_db,
+                                           user_provided_otp=user_otp,
+                                           email=user_email)
 
     if validate_otp:
         user_db.is_verified = True
@@ -74,8 +74,8 @@ async def activate_refresh_otp(
         user_db.otp_try = otp_try
 
         # sending email with otp
-        logger.info(f"Refresh OTP: Password matching, start sending email")
-        
+        logger.info("Refresh OTP: Password matching, start sending email")
+
         subject = "You email ask to refresh code for verifi account"
         body = ("If you do not ask this code, ignore this email."
                 f" You code is: {otp}"

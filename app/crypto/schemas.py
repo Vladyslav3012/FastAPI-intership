@@ -2,6 +2,7 @@ import datetime
 from pydantic import BaseModel, Field, ConfigDict
 from app.crypto.models import ConditionsEnum
 
+
 class CoinSchema(BaseModel):
     id: int
     name: str

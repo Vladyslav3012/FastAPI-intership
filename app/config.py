@@ -21,7 +21,8 @@ BASE_DIR = Path(__file__).parent.parent
 # shortcut for database tables
 class DatabaseShortcut:
     intpk = Annotated[int, mapped_column(primary_key=True)]
-    created_at = Annotated[datetime.datetime, mapped_column(server_default=func.now())]
+    created_at = Annotated[datetime.datetime,
+                           mapped_column(server_default=func.now())]
 
 
 # jwt settings
@@ -109,9 +110,11 @@ SessionDep = Annotated[AsyncSession, Depends(async_get_session)]
 
 
 # sync db
-sync_db_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+sync_db_url = settings.database_url.replace("postgresql+asyncpg://",
+                                            "postgresql://")
 sync_engine = create_engine(sync_db_url)
-sync_new_session = sessionmaker(autoflush=False, autocommit=False, bind=sync_engine)
+sync_new_session = sessionmaker(autoflush=False,
+                                autocommit=False, bind=sync_engine)
 
 
 class Base(DeclarativeBase):
@@ -207,7 +210,5 @@ def create_otp_arg():
 LIMIT REQUEST
 """
 
-email_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(1,
-                                                               Duration.MINUTE * 1))))
-login_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(3,
-                                                               Duration.MINUTE * 1))))
+email_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(1, Duration.MINUTE * 1))))
+login_request_limit = Depends(RateLimiter(limiter=Limiter(Rate(3, Duration.MINUTE * 1))))
