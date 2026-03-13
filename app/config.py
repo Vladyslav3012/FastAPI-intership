@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     DB_USER: str = "postgres"
     DB_PASS: str = 'key'
     DB_NAME: str = 'key'
+    DATABASE_URL: str = None
 
     TEST_DB_HOST: str
     TEST_DB_PORT: int
@@ -96,7 +97,11 @@ settings = Settings()
 DATABASE SETTINGS SESSION
 """
 
-async_engine = create_async_engine(settings.database_url)
+async_database_url = settings.database_url
+if settings.DATABASE_URL is not None:
+    async_database_url = settings.DATABASE_URL
+    
+async_engine = create_async_engine(async_database_url)
 
 async_new_session = async_sessionmaker(async_engine, expire_on_commit=False)
 
@@ -110,7 +115,7 @@ SessionDep = Annotated[AsyncSession, Depends(async_get_session)]
 
 
 # sync db
-sync_db_url = settings.database_url.replace("postgresql+asyncpg://",
+sync_db_url = async_database_url.replace("postgresql+asyncpg://",
                                             "postgresql://")
 sync_engine = create_engine(sync_db_url)
 sync_new_session = sessionmaker(autoflush=False,
