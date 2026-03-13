@@ -6,7 +6,7 @@ from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException
 from fastapi.security import (HTTPAuthorizationCredentials, HTTPBearer)
 from pydantic import BaseModel, EmailStr
-from app.config import settings, SessionDep
+from app.config import settings, SessionDep, AuthJWT
 from app.redis_config import check_token_in_blacklist
 from app.users.models import RefreshTokenModel, UsersModel
 from app.users.schemas import UserOutputSchema
@@ -15,6 +15,7 @@ from sqlalchemy import select
 
 http_bearer = HTTPBearer()
 logger = logging.getLogger(__name__)
+jwt_settings = AuthJWT()
 
 
 """
@@ -36,10 +37,17 @@ CREATE TOKEN AND DECODE
 """
 
 
-def encode_jwt(payload: dict,
-               expire_minutes: int,
-               private_key: str = settings.auth_jwt.private_key_path.read_text(),
-               algorithm: str = settings.auth_jwt.algorithm):
+def encode_jwt(
+    payload: dict,
+    expire_minutes: int,
+    private_key: str | None = None,
+    algorithm: str | None = None,
+):
+
+    if private_key is None:
+        private_key = jwt_settings.private_key
+    if algorithm is None:
+        algorithm = jwt_settings.algorithm
 
     now = datetime.datetime.now(datetime.UTC)
     expire = now + datetime.timedelta(minutes=expire_minutes)
@@ -54,10 +62,16 @@ def encode_jwt(payload: dict,
     return token
 
 
-def decode_jwt(token: str | bytes,
-               public_key: str = settings.auth_jwt.public_key_path.read_text(),
-               algorithm: str = settings.auth_jwt.algorithm
-               ):
+def decode_jwt(
+    token: str | bytes,
+    public_key: str | None = None,
+    algorithm: str | None = None,
+):
+    if public_key is None:
+        public_key = jwt_settings.public_key
+    if algorithm is None:
+        algorithm = jwt_settings.algorithm
+
     decode_token = jwt.decode(jwt=token,
                               key=public_key,
                               algorithms=[algorithm])
@@ -77,7 +91,7 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
     jti_refresh = str(uuid.uuid4())
 
     now = datetime.datetime.now(datetime.UTC)
-    expire = now + datetime.timedelta(minutes=settings.auth_jwt.refresh_token_expire_minutes)
+    expire = now + datetime.timedelta(minutes=jwt_settings.refresh_token_expire_minutes)
 
     db_token = RefreshTokenModel(
         jti=jti_refresh,
@@ -91,9 +105,11 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
         'jti': jti_refresh
 
     }
-    refresh_token = create_jwt(REFRESH_TOKEN_FIELD,
-                               jwt_refresh_payload,
-                               settings.auth_jwt.refresh_token_expire_minutes)
+    refresh_token = create_jwt(
+        REFRESH_TOKEN_FIELD,
+        jwt_refresh_payload,
+        jwt_settings.refresh_token_expire_minutes,
+    )
 
     # access token
     jti_access = str(uuid.uuid4())
@@ -105,8 +121,11 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
         "jti": jti_access,
         "refresh_jti": jti_refresh
     }
-    access_token = create_jwt(ACCESS_TOKEN_FIELD, jwt_access_payload,
-                              settings.auth_jwt.access_token_expire_minutes)
+    access_token = create_jwt(
+        ACCESS_TOKEN_FIELD,
+        jwt_access_payload,
+        jwt_settings.access_token_expire_minutes,
+    )
 
     return {
         "access_token": access_token,

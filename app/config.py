@@ -25,15 +25,6 @@ class DatabaseShortcut:
                            mapped_column(server_default=func.now())]
 
 
-# jwt settings
-class AuthJWT(BaseModel):
-    private_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-private.pem"
-    public_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-public.pem"
-    algorithm: str = "RS256"
-    access_token_expire_minutes: int = 15
-    refresh_token_expire_minutes: int = 60 * 24 * 30
-
-
 class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
@@ -58,6 +49,9 @@ class Settings(BaseSettings):
 
     DEMO_COINGECKO_KEY: str
 
+    PRIVATE_KEY: str | None = None
+    PUBLIC_KEY: str | None = None
+    
     model_config = SettingsConfigDict(env_file=BASE_DIR / '.env',
                                       extra='ignore')
 
@@ -86,12 +80,31 @@ class Settings(BaseSettings):
             path=self.TEST_DB_NAME,
         ))
 
-    auth_jwt: AuthJWT = AuthJWT()
 
     database_shortcut: DatabaseShortcut = DatabaseShortcut()
 
 
 settings = Settings()
+
+
+"""
+AUTH
+"""
+class AuthJWT(BaseModel):
+    private_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-private.pem"
+    public_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-public.pem"
+    
+    private_key: str = private_key_path.read_text()
+    public_key: str = public_key_path.read_text()
+    
+    if settings.PRIVATE_KEY is not None and settings.PUBLIC_KEY is not None:
+        private_key = settings.PRIVATE_KEY
+        public_key = settings.PUBLIC_KEY
+        
+    algorithm: str = "RS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_minutes: int = 60 * 24 * 30
+    
 
 """
 DATABASE SETTINGS SESSION
