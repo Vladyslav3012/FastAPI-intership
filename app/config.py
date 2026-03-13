@@ -94,12 +94,12 @@ class AuthJWT(BaseModel):
     private_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-private.pem"
     public_key_path: Path = BASE_DIR / "app" / "certs" / "jwt-public.pem"
     
-    private_key: str = private_key_path.read_text()
-    public_key: str = public_key_path.read_text()
-    
     if settings.PRIVATE_KEY is not None and settings.PUBLIC_KEY is not None:
         private_key = settings.PRIVATE_KEY
         public_key = settings.PUBLIC_KEY
+    else: 
+        private_key: str = private_key_path.read_text()
+        public_key: str = public_key_path.read_text()
         
     algorithm: str = "RS256"
     access_token_expire_minutes: int = 15
