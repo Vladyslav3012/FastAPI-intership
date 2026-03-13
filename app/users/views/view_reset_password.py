@@ -37,7 +37,7 @@ async def reset_user_password_auth(
         user.password = new_password
         session.add(user)
         await session.commit()
-
+        logging.info(f"User {user.email} succes change his password")
         return {"msg": "Success reset password"}
 
     raise HTTPException(400, "User not active or not verify")
@@ -61,6 +61,7 @@ async def request_otp_for_reset_user_password_unauth(
     user_db.otp = otp
     user_db.otp_expire = otp_expire
     user_db.otp_try = otp_try
+    logger.info(f"Success generate otp, start sending email to {email}")
 
     # sending email with otp
     subject = "You email ask to reset password"
@@ -87,20 +88,21 @@ async def reset_user_password_unauth(
     new_password = user_data.new_password
 
     user_db = await get_user_by_email(email, session)
+    logger.info(f"User with {email=} start reset his password")
+
+    if check_password(new_password, user_db.password):
+        logger.info(f'User {email=} sent two similar password')
+        raise HTTPException(400, "Passwords must be different than old")
 
     otp_in_db = user_db.otp
     otp_expire_in_db = user_db.otp_expire
     otp_try_in_db = user_db.otp_try
 
     validate_otp = validate_user_otp_state(user_db=user_db, otp_in_db=otp_in_db,
-                            otp_try_in_db=otp_try_in_db,
-                            otp_expire_in_db=otp_expire_in_db,
-                            user_provided_otp=user_otp,
-                            email=email)
-
-    if check_password(new_password, user_db.password):
-        logger.info(f'User {email=} sent two similar password')
-        raise HTTPException(400, "Passwords must be different than old")
+                                           otp_try_in_db=otp_try_in_db,
+                                           otp_expire_in_db=otp_expire_in_db,
+                                           user_provided_otp=user_otp,
+                                           email=email)
 
     if validate_otp:
         user_db.password = new_password
@@ -111,6 +113,7 @@ async def reset_user_password_unauth(
 
         session.add(user_db)
         await session.commit()
+        logger.info(f"User with {email=} success reset his password")
         return {"msg": "Success reset you password"}
 
     user_db.otp_try -= 1

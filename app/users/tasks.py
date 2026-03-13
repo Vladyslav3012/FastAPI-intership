@@ -7,6 +7,7 @@ from asgiref.sync import async_to_sync
 
 logger = logging.getLogger(__name__)
 
+
 @c_app.task
 def sending_email_message(recipients: list[NameEmail],
                           subject: str, body: str) -> bool:

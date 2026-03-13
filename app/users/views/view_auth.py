@@ -33,15 +33,17 @@ async def signup_user(user: UserInputSchema, session: SessionDep) -> UsersModel:
         )
         session.add(new_user)
         await session.commit()
+        logger.info(f"Success sign up new user. {user.email=}")
 
         # sending email with otp
+        logger.info(f"Start sending welcome email to new user with {user.email=}")
         subject = "Welcome on our website"
         body = ("Now you need to verify you account with otp"
                 f" You code is: {otp}"
                 f" You have {otp_expired_minutes} minutes to activate with this code")
         sending_email_message.delay([user.email], subject, body)
 
-        logger.info(f"Success sign up with {user.email=}")
+        logger.info(f"Success sending welcome letter to {user.email}")
         return new_user
     except IntegrityError:
         logger.info(f"{user.email=} has been used")
@@ -61,6 +63,7 @@ async def login_user(session: SessionDep,
     await clean_old_sessions(user.id, session)
 
     await session.commit()
+    logger.info(f"Success login {user.email=}")
 
     return auth_utils.TokenInfo(
         access_token=access_token,
@@ -78,15 +81,17 @@ async def logout_user(
     refresh_jti = payload.get('refresh_jti')
 
     if await check_token_in_blacklist(jti):
-        logger.info("Token in black list")
+        logger.warning(f"Token with {jti=} already in black list")
         raise HTTPException(401, "Invalid token")
 
     await add_jti_to_blocklist(jti=jti, exp=exp)
+    logger.info(f"Logout: add token with {jti=} to blacklist")
 
     if refresh_jti:
         query = delete(RefreshTokenModel).where(RefreshTokenModel.jti == refresh_jti)
         await session.execute(query)
         await session.commit()
+        logger.info(f"Logout: success delete refersh token with {jti=} from database")
         return {"msg": "Success logout from this device only"}
 
     logger.info("Token has not refresh_jti")
@@ -112,9 +117,10 @@ async def refresh_jwt(
         user: UserOutputSchema =
         Depends(users_utils.UserGetterFromTokenType(auth_utils.REFRESH_TOKEN_FIELD)),
 ) -> auth_utils.TokenInfo:
+    logging.info(f"Refresh token: start refresh for {user.email=}")
     jti = payload.get('jti')
     if not jti:
-        logger.info("Token has not jti")
+        logger.error("Refresh token: Token has not jti")
         raise HTTPException(401, "Invalid token")
 
     query = select(RefreshTokenModel).where(RefreshTokenModel.jti == jti)
@@ -122,16 +128,18 @@ async def refresh_jwt(
     token_db = result.scalars().one_or_none()
 
     if not token_db:
-        logger.info(f"Token {jti=} not found in db")
+        logger.info(f"Refresh  token: Token {jti=} not found in db")
         raise HTTPException(401, "Invalid token")
 
     await session.delete(token_db)
+    logger.info(f"Refresh token: Success delete old token from database with {jti=}")
 
     tokens = await auth_utils.create_token_pair(session, user)
     access_token = tokens.get('access_token')
     refresh_token = tokens.get('refresh_token')
 
     await session.commit()
+    logger.info(f"Refresh token: success refres tokens for {user.email=}")
 
     return auth_utils.TokenInfo(
         access_token=access_token,

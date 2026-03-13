@@ -28,7 +28,7 @@ async def check_auth_user_in_db(
     user_db = await get_user_by_email(email, session)
 
     if not check_password(password=password, hashed_password=user_db._hashed_password_):
-        logger.info("Password did not match")
+        logger.info(f"User {email=} send password which do not match")
         raise unauth_exception
     if not user_db.active:
         logger.info(f"User {email=} inactive")

@@ -17,6 +17,7 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
     user_email = input_data.email
     user_otp = input_data.otp
 
+    logger.info(f"Activated email: start activated for {user_email}")
     user_db = await get_user_by_email(user_email, session)
 
     otp_in_db = user_db.otp
@@ -24,10 +25,10 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
     otp_try_in_db = user_db.otp_try
 
     validate_otp = validate_user_otp_state(user_db=user_db, otp_in_db=otp_in_db,
-                            otp_try_in_db=otp_try_in_db,
-                            otp_expire_in_db=otp_expire_in_db,
-                            user_provided_otp=user_otp,
-                            email=user_email)
+                                           otp_try_in_db=otp_try_in_db,
+                                           otp_expire_in_db=otp_expire_in_db,
+                                           user_provided_otp=user_otp,
+                                           email=user_email)
 
     if validate_otp:
         user_db.is_verified = True
@@ -38,11 +39,13 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
 
         session.add(user_db)
         await session.commit()
+        logging.info(f"Activated email: User {user_email=} success activate his email")
         return {"msg": "Success verify you email address"}
 
     user_db.otp_try -= 1
     session.add(user_db)
     await session.commit()
+    logger.info(f"Activated email: User {user_email=} send incorrect code")
     raise HTTPException(400, "You send incorrect code, please try again"
                              f"try left {user_db.otp_try}")
 
@@ -54,11 +57,12 @@ async def activate_refresh_otp(
 ) -> dict:
     email = user_data.email
     password = user_data.password
+    logger.info(f"Refresh OTP: user {email=} ask to refresh code")
 
     user_db = await get_user_by_email(email, session)
 
     if user_db.is_verified or not user_db.active:
-        logger.info(f"User with {email=} already verified or inactive")
+        logger.info(f"Refresh OTP: User with {email=} already verified or inactive")
         raise HTTPException(400, "User already verified or inactive")
 
     if check_password(password, user_db._hashed_password_):
@@ -70,6 +74,8 @@ async def activate_refresh_otp(
         user_db.otp_try = otp_try
 
         # sending email with otp
+        logger.info("Refresh OTP: Password matching, start sending email")
+
         subject = "You email ask to refresh code for verifi account"
         body = ("If you do not ask this code, ignore this email."
                 f" You code is: {otp}"

@@ -33,8 +33,10 @@ class AlertModel(Base):
     __tablename__ = "alerts"
 
     id: Mapped[shortcut.intpk]
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"))
-    coin_id: Mapped[int] = mapped_column(ForeignKey('coins.id', ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id',
+                                                    ondelete="CASCADE"))
+    coin_id: Mapped[int] = mapped_column(ForeignKey('coins.id',
+                                                    ondelete="CASCADE"))
     target_price: Mapped[float]
     conditions: Mapped[ConditionsEnum]
     is_active: Mapped[bool] = mapped_column(default=True)

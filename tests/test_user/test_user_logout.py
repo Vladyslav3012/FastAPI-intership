@@ -6,10 +6,13 @@ from httpx import AsyncClient
 from app.config import login_request_limit
 from app.main import app
 
+
 async def override_rate_limit():
     pass
 
+
 app.dependency_overrides[login_request_limit] = override_rate_limit
+
 
 @pytest.mark.asyncio
 @patch('app.users.views.view_auth.sending_email_message.delay')
