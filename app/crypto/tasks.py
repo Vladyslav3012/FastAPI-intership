@@ -61,7 +61,7 @@ def check_alert_after_update():
     with sync_new_session() as session:
         query = select(AlertModel).options(
             joinedload(AlertModel.coin), joinedload(AlertModel.user)
-        ).where(AlertModel.is_active is True)
+        ).where(AlertModel.is_active == True)
 
         alerts: list[AlertModel] = session.execute(query).scalars().all()
         logger.info(f"Start checking alert list {len(alerts)=}")
