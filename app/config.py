@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     DB_USER: str = "postgres"
     DB_PASS: str = 'key'
     DB_NAME: str = 'key'
-    DATABASE_URL: str = None
+    DATABASE_URL: str | None = None
 
     TEST_DB_HOST: str
     TEST_DB_PORT: int
