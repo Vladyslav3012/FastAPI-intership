@@ -31,7 +31,6 @@ class Settings(BaseSettings):
     DB_USER: str = "postgres"
     DB_PASS: str = 'key'
     DB_NAME: str = 'key'
-    DATABASE_URL: str | None = None
 
     TEST_DB_HOST: str
     TEST_DB_PORT: int
@@ -111,9 +110,6 @@ DATABASE SETTINGS SESSION
 """
 
 async_database_url = settings.database_url
-if settings.DATABASE_URL is not None:
-    async_database_url = settings.DATABASE_URL
-    
 async_engine = create_async_engine(async_database_url)
 
 async_new_session = async_sessionmaker(async_engine, expire_on_commit=False)
