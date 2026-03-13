@@ -20,7 +20,7 @@ async def subscription_to_alert(data: AlertInputSchema,
                                 session: SessionDep,
                                 user: UsersModel =
                                 Depends(UserGetterFromTokenType(ACCESS_TOKEN_FIELD))):
-    logger.infp(f"Start create alert for {data.coin_name} by {user.email}")
+    logger.info(f"Start create alert for {data.coin_name} by {user.email}")
 
     query = select(CoinModel).where(CoinModel.name == data.coin_name)
     result = await session.execute(query)
