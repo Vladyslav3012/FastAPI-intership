@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import Session
 from app.celery_config import c_app
 from readability import Document
+from pydantic import HttpUrl
 import time
 
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @c_app.task(bind=True)
-def parsing_site(self, url):
+def parsing_site(self, url: HttpUrl):
 
     with Session() as client:
         response = client.get(url, impersonate="chrome110")

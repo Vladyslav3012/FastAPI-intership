@@ -1,5 +1,6 @@
 import datetime
 import logging
+from typing import Any
 import uuid
 import jwt
 from jwt.exceptions import InvalidTokenError
@@ -42,7 +43,7 @@ def encode_jwt(
     expire_minutes: int,
     private_key: str | None = None,
     algorithm: str | None = None,
-):
+) -> str:
 
     if private_key is None:
         private_key = jwt_settings.private_key
@@ -62,11 +63,10 @@ def encode_jwt(
     return token
 
 
-def decode_jwt(
-    token: str | bytes,
-    public_key: str | None = None,
-    algorithm: str | None = None,
-):
+def decode_jwt(token: str | bytes, 
+               public_key: str | None = None, 
+               algorithm: str | None = None
+               ) -> dict[str, Any]:
     if public_key is None:
         public_key = jwt_settings.public_key
     if algorithm is None:
@@ -85,7 +85,7 @@ def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
     return encode_jwt(payload=jwt_payload, expire_minutes=expire_minutes)
 
 
-async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict:
+async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict[str, str]:
 
     # create refresh token
     jti_refresh = str(uuid.uuid4())
@@ -140,10 +140,10 @@ HELPERS FUNC
 
 async def get_payload_from_token(
         credentials: HTTPAuthorizationCredentials = Depends(http_bearer)
-) -> dict:
+) -> dict[str, Any]:
     token = credentials.credentials
     try:
-        payload = decode_jwt(token=token, )
+        payload: dict = decode_jwt(token=token, )
     except InvalidTokenError as e:
         logger.info(f"User enter invalid token: {e}")
         raise HTTPException(401, 'Invalid token')
@@ -164,7 +164,7 @@ async def validate_token_by_type(payload: dict, token_type_to_check: str) -> Non
         raise HTTPException(401, "Invalid token")
 
     jti = payload.get('jti')
-    check = await check_token_in_blacklist(jti)
+    check: bool = await check_token_in_blacklist(jti)
     if check:
         logger.info("Token in blacklist")
         raise HTTPException(401, "Invalid token")
@@ -177,7 +177,7 @@ async def clean_old_sessions(user_id: int, session, limit: int = 5) -> None:
              .order_by(RefreshTokenModel.expire_at.asc()))
 
     result = await session.execute(query)
-    tokens = result.scalars().all()
+    tokens: list[RefreshTokenModel] = result.scalars().all()
 
     if len(tokens) >= limit:
         to_delete_count = len(tokens) - limit + 1
@@ -191,7 +191,7 @@ def validate_user_otp_state(user_db: UsersModel, otp_in_db: str,
                             otp_try_in_db: int,
                             otp_expire_in_db: datetime.datetime,
                             user_provided_otp: str,
-                            email: EmailStr):
+                            email: EmailStr) -> bool:
 
     logger.info(f"DEBUG user state before validate_user_otp_state: "
                 "{email=}, is_verified={user_db.is_verified}, active={user_db.active}"
