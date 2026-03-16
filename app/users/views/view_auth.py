@@ -6,7 +6,7 @@ from app.users.tasks import sending_email_message
 from app.config import SessionDep, create_otp_arg, otp_expired_minutes, login_request_limit
 from app.redis_config import add_jti_to_blocklist, check_token_in_blacklist
 from app.users.models import UsersModel, RefreshTokenModel
-from app.users.schemas import UserOutputSchema, UserInputSchema
+from app.users.schemas import UserOutputSchema, UserInputSchema, UserMeResponse
 from app.users.utils import users_utils, auth_utils
 from app.users.utils.auth_utils import clean_old_sessions
 
@@ -56,7 +56,7 @@ async def login_user(session: SessionDep,
                      user: UserOutputSchema =
                      Depends(users_utils.check_auth_user_in_db)) -> auth_utils.TokenInfo:
 
-    tokens = await auth_utils.create_token_pair(session, user)
+    tokens: dict = await auth_utils.create_token_pair(session, user)
     access_token = tokens.get('access_token')
     refresh_token = tokens.get('refresh_token')
 
@@ -75,7 +75,7 @@ async def login_user(session: SessionDep,
 async def logout_user(
         session: SessionDep,
         payload: dict = Depends(auth_utils.get_payload_from_token)
-):
+) -> dict[str, str]:
     jti = payload.get('jti')
     exp = payload.get('exp')
     refresh_jti = payload.get('refresh_jti')
@@ -102,11 +102,8 @@ async def logout_user(
 async def get_active_auth_user(
         user: UserOutputSchema =
         Depends(users_utils.UserGetterFromTokenType(auth_utils.ACCESS_TOKEN_FIELD))
-) -> dict:
-    return {
-        "email": user.email,
-        "username": user.username
-    }
+) -> UserMeResponse:
+    return UserMeResponse(email=user.email, username=user.username)
 
 
 @router.post('/refresh', response_model=auth_utils.TokenInfo,
@@ -125,7 +122,7 @@ async def refresh_jwt(
 
     query = select(RefreshTokenModel).where(RefreshTokenModel.jti == jti)
     result = await session.execute(query)
-    token_db = result.scalars().one_or_none()
+    token_db: RefreshTokenModel = result.scalars().one_or_none()
 
     if not token_db:
         logger.info(f"Refresh  token: Token {jti=} not found in db")
@@ -134,7 +131,7 @@ async def refresh_jwt(
     await session.delete(token_db)
     logger.info(f"Refresh token: Success delete old token from database with {jti=}")
 
-    tokens = await auth_utils.create_token_pair(session, user)
+    tokens: dict[str, str] = await auth_utils.create_token_pair(session, user)
     access_token = tokens.get('access_token')
     refresh_token = tokens.get('refresh_token')
 

@@ -1,12 +1,13 @@
 import datetime
 import logging
+from typing import Any
 import uuid
 import jwt
 from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException
 from fastapi.security import (HTTPAuthorizationCredentials, HTTPBearer)
 from pydantic import BaseModel, EmailStr
-from app.config import settings, SessionDep
+from app.config import settings, SessionDep, AuthJWT
 from app.redis_config import check_token_in_blacklist
 from app.users.models import RefreshTokenModel, UsersModel
 from app.users.schemas import UserOutputSchema
@@ -15,6 +16,7 @@ from sqlalchemy import select
 
 http_bearer = HTTPBearer()
 logger = logging.getLogger(__name__)
+jwt_settings = AuthJWT()
 
 
 """
@@ -36,10 +38,17 @@ CREATE TOKEN AND DECODE
 """
 
 
-def encode_jwt(payload: dict,
-               expire_minutes: int,
-               private_key: str = settings.auth_jwt.private_key_path.read_text(),
-               algorithm: str = settings.auth_jwt.algorithm):
+def encode_jwt(
+    payload: dict,
+    expire_minutes: int,
+    private_key: str | None = None,
+    algorithm: str | None = None,
+) -> str:
+
+    if private_key is None:
+        private_key = jwt_settings.private_key
+    if algorithm is None:
+        algorithm = jwt_settings.algorithm
 
     now = datetime.datetime.now(datetime.UTC)
     expire = now + datetime.timedelta(minutes=expire_minutes)
@@ -54,10 +63,15 @@ def encode_jwt(payload: dict,
     return token
 
 
-def decode_jwt(token: str | bytes,
-               public_key: str = settings.auth_jwt.public_key_path.read_text(),
-               algorithm: str = settings.auth_jwt.algorithm
-               ):
+def decode_jwt(token: str | bytes, 
+               public_key: str | None = None, 
+               algorithm: str | None = None
+               ) -> dict[str, Any]:
+    if public_key is None:
+        public_key = jwt_settings.public_key
+    if algorithm is None:
+        algorithm = jwt_settings.algorithm
+
     decode_token = jwt.decode(jwt=token,
                               key=public_key,
                               algorithms=[algorithm])
@@ -71,13 +85,13 @@ def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
     return encode_jwt(payload=jwt_payload, expire_minutes=expire_minutes)
 
 
-async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict:
+async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict[str, str]:
 
     # create refresh token
     jti_refresh = str(uuid.uuid4())
 
     now = datetime.datetime.now(datetime.UTC)
-    expire = now + datetime.timedelta(minutes=settings.auth_jwt.refresh_token_expire_minutes)
+    expire = now + datetime.timedelta(minutes=jwt_settings.refresh_token_expire_minutes)
 
     db_token = RefreshTokenModel(
         jti=jti_refresh,
@@ -91,9 +105,11 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
         'jti': jti_refresh
 
     }
-    refresh_token = create_jwt(REFRESH_TOKEN_FIELD,
-                               jwt_refresh_payload,
-                               settings.auth_jwt.refresh_token_expire_minutes)
+    refresh_token = create_jwt(
+        REFRESH_TOKEN_FIELD,
+        jwt_refresh_payload,
+        jwt_settings.refresh_token_expire_minutes,
+    )
 
     # access token
     jti_access = str(uuid.uuid4())
@@ -105,8 +121,11 @@ async def create_token_pair(session: SessionDep, user: UserOutputSchema) -> dict
         "jti": jti_access,
         "refresh_jti": jti_refresh
     }
-    access_token = create_jwt(ACCESS_TOKEN_FIELD, jwt_access_payload,
-                              settings.auth_jwt.access_token_expire_minutes)
+    access_token = create_jwt(
+        ACCESS_TOKEN_FIELD,
+        jwt_access_payload,
+        jwt_settings.access_token_expire_minutes,
+    )
 
     return {
         "access_token": access_token,
@@ -121,10 +140,10 @@ HELPERS FUNC
 
 async def get_payload_from_token(
         credentials: HTTPAuthorizationCredentials = Depends(http_bearer)
-) -> dict:
+) -> dict[str, Any]:
     token = credentials.credentials
     try:
-        payload = decode_jwt(token=token, )
+        payload: dict = decode_jwt(token=token, )
     except InvalidTokenError as e:
         logger.info(f"User enter invalid token: {e}")
         raise HTTPException(401, 'Invalid token')
@@ -145,7 +164,7 @@ async def validate_token_by_type(payload: dict, token_type_to_check: str) -> Non
         raise HTTPException(401, "Invalid token")
 
     jti = payload.get('jti')
-    check = await check_token_in_blacklist(jti)
+    check: bool = await check_token_in_blacklist(jti)
     if check:
         logger.info("Token in blacklist")
         raise HTTPException(401, "Invalid token")
@@ -158,7 +177,7 @@ async def clean_old_sessions(user_id: int, session, limit: int = 5) -> None:
              .order_by(RefreshTokenModel.expire_at.asc()))
 
     result = await session.execute(query)
-    tokens = result.scalars().all()
+    tokens: list[RefreshTokenModel] = result.scalars().all()
 
     if len(tokens) >= limit:
         to_delete_count = len(tokens) - limit + 1
@@ -172,7 +191,7 @@ def validate_user_otp_state(user_db: UsersModel, otp_in_db: str,
                             otp_try_in_db: int,
                             otp_expire_in_db: datetime.datetime,
                             user_provided_otp: str,
-                            email: EmailStr):
+                            email: EmailStr) -> bool:
 
     logger.info(f"DEBUG user state before validate_user_otp_state: "
                 "{email=}, is_verified={user_db.is_verified}, active={user_db.active}"

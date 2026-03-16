@@ -21,7 +21,7 @@ async def reset_user_password_auth(
         user_password: UserResetPasswordSchema,
         user: UsersModel =
         Depends(users_utils.UserGetterFromTokenType(auth_utils.ACCESS_TOKEN_FIELD)),
-) -> dict:
+) -> dict[str, str]:
     old_password = user_password.old_password
     new_password = user_password.new_password
 
@@ -47,10 +47,10 @@ async def reset_user_password_auth(
 async def request_otp_for_reset_user_password_unauth(
         session: SessionDep,
         email_data: UserOnlyEmailSchema
-) -> dict:
+) -> dict[str, str]:
     email = email_data.email
 
-    user_db = await get_user_by_email(email, session)
+    user_db: UsersModel = await get_user_by_email(email, session)
 
     if not user_db.is_verified or not user_db.active:
         logger.info(f"User with {email=} inactive or not verify")
@@ -82,12 +82,12 @@ async def request_otp_for_reset_user_password_unauth(
 async def reset_user_password_unauth(
         session: SessionDep,
         user_data: UserResetPasswordWithOTPSchema
-) -> dict:
+) -> dict[str, str]:
     email = user_data.email
     user_otp = user_data.otp
     new_password = user_data.new_password
 
-    user_db = await get_user_by_email(email, session)
+    user_db: UsersModel = await get_user_by_email(email, session)
     logger.info(f"User with {email=} start reset his password")
 
     if check_password(new_password, user_db.password):
