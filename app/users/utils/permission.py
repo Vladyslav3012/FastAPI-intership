@@ -15,7 +15,7 @@ class UserCheckRole:
     def __call__(self,
                  current_user: UsersModel =
                  Depends(users_utils.UserGetterFromTokenType(auth_utils.ACCESS_TOKEN_FIELD))
-                 ):
+                 ) -> bool:
         if not current_user.is_verified:
             logger.info(f"{current_user.email=} not verified")
             raise HTTPException(403, 'Account not verified')

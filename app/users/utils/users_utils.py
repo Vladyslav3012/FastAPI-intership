@@ -25,7 +25,7 @@ async def check_auth_user_in_db(
 
     unauth_exception = HTTPException(status_code=401, detail="Invalid credentials")
 
-    user_db = await get_user_by_email(email, session)
+    user_db: UsersModel = await get_user_by_email(email, session)
 
     if not check_password(password=password, hashed_password=user_db._hashed_password_):
         logger.info(f"User {email=} send password which do not match")
@@ -37,6 +37,7 @@ async def check_auth_user_in_db(
 
 
 async def get_current_user_from_payload(payload: dict, session: SessionDep) -> UsersModel:
+
     user_id = payload.get('id')
     if user_id is None:
         user_id = int(payload.get('sub'))
@@ -45,7 +46,7 @@ async def get_current_user_from_payload(payload: dict, session: SessionDep) -> U
 
     query = select(UsersModel).where(UsersModel.id == user_id)
     res = await session.execute(query)
-    user_db = res.scalars().one_or_none()
+    user_db: UsersModel | None = res.scalars().one_or_none()
 
     if user_db is None:
         logger.info(f"User with {user_id=} not found")
@@ -61,7 +62,8 @@ class UserGetterFromTokenType:
         self.token_type = token_type
 
     async def __call__(self, session: SessionDep,
-                       payload: dict = Depends(auth_utils.get_payload_from_token)):
+                       payload: dict = Depends(auth_utils.get_payload_from_token)
+                       ) -> UsersModel:
         await auth_utils.validate_token_by_type(payload, self.token_type)
         return await get_current_user_from_payload(payload, session)
 
@@ -69,7 +71,7 @@ class UserGetterFromTokenType:
 async def get_user_by_email(email, session) -> UsersModel:
     query = select(UsersModel).where(UsersModel.email == email)
     res = await session.execute(query)
-    user = res.scalars().one_or_none()
+    user: UsersModel = res.scalars().one_or_none()
     if user is None:
         logger.info(f"User with {email=} not found")
         raise HTTPException(400, "Invalid credentials")

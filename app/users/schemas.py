@@ -64,3 +64,8 @@ class UserResetPasswordWithOTPSchema(UserPasswordBaseSchema):
 
 class UserOnlyEmailSchema(BaseModel):
     email: EmailStr
+    
+
+class UserMeResponse(BaseModel):
+    email: EmailStr
+    username: str

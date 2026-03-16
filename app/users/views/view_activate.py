@@ -6,6 +6,7 @@ from app.users.utils.auth_utils import validate_user_otp_state
 from app.users.utils.security_password import check_password
 from app.users.tasks import sending_email_message
 from app.users.utils.users_utils import get_user_by_email
+from app.users.models import UsersModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Activate"], prefix='/users/activate')
@@ -13,18 +14,18 @@ router = APIRouter(tags=["Activate"], prefix='/users/activate')
 
 @router.post('/')
 async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
-                                 session: SessionDep) -> dict:
+                                 session: SessionDep) -> dict[str, str]:
     user_email = input_data.email
     user_otp = input_data.otp
 
     logger.info(f"Activated email: start activated for {user_email}")
-    user_db = await get_user_by_email(user_email, session)
+    user_db: UsersModel = await get_user_by_email(user_email, session)
 
     otp_in_db = user_db.otp
     otp_expire_in_db = user_db.otp_expire
     otp_try_in_db = user_db.otp_try
 
-    validate_otp = validate_user_otp_state(user_db=user_db, otp_in_db=otp_in_db,
+    validate_otp: bool = validate_user_otp_state(user_db=user_db, otp_in_db=otp_in_db,
                                            otp_try_in_db=otp_try_in_db,
                                            otp_expire_in_db=otp_expire_in_db,
                                            user_provided_otp=user_otp,
@@ -54,12 +55,12 @@ async def activate_user_with_otp(input_data: UserActivateWithOTPSchema,
 async def activate_refresh_otp(
         session: SessionDep,
         user_data: UserLogInSchema
-) -> dict:
+) -> dict[str, str]:
     email = user_data.email
     password = user_data.password
     logger.info(f"Refresh OTP: user {email=} ask to refresh code")
 
-    user_db = await get_user_by_email(email, session)
+    user_db: UsersModel = await get_user_by_email(email, session)
 
     if user_db.is_verified or not user_db.active:
         logger.info(f"Refresh OTP: User with {email=} already verified or inactive")
